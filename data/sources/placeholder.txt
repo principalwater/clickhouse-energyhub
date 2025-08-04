@@ -1,0 +1,1 @@
+This directory will contain source data files (e.g., CSVs from Nord Pool).

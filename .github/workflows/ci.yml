@@ -1,0 +1,21 @@
+# Placeholder for CI/CD pipeline (e.g., GitHub Actions)
+# Will include steps for:
+# - Linting (Terraform, Dockerfile, Python)
+# - Building Docker images
+# - Running tests (dbt, etc.)
+# - Deploying to Kubernetes
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run a one-line script
+      run: echo Hello, world!
