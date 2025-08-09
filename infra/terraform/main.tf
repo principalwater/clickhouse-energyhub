@@ -20,6 +20,14 @@ terraform {
       source  = "hashicorp/helm"
       version = "2.13.2"
     }
+    null = {
+      source = "hashicorp/null"
+      version = "3.2.2"
+    }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = "1.19.0"
+    }
   }
 }
 
@@ -57,6 +65,10 @@ provider "helm" {
   kubernetes {
     config_path = "~/.kube/config"
   }
+}
+
+provider "kubectl" {
+  config_path = "~/.kube/config"
 }
 
 # --- Resources ---
@@ -149,7 +161,7 @@ resource "kubernetes_secret" "s3_credentials" {
 resource "helm_release" "clickhouse_operator" {
   name       = "clickhouse-operator"
   repository = "https://altinity.github.io/clickhouse-operator"
-  chart      = "clickhouse-operator"
+  chart      = "altinity-clickhouse-operator"
   version    = var.clickhouse_operator_version
   namespace  = kubernetes_namespace.energyhub_ns.metadata[0].name
 
@@ -161,9 +173,35 @@ resource "helm_release" "clickhouse_operator" {
   depends_on = [kubernetes_namespace.energyhub_ns]
 }
 
+# This null_resource with a local-exec provisioner actively waits for the CRD
+# to be established in the Kubernetes cluster before proceeding. This is more
+# reliable than a fixed-time sleep.
+resource "null_resource" "wait_for_crd_registration" {
+  depends_on = [helm_release.clickhouse_operator]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "Waiting for ClickHouseInstallation CRD to be registered..."
+      for i in {1..30}; do
+        if kubectl get crd clickhouseinstallations.clickhouse.altinity.com > /dev/null 2>&1; then
+          echo "CRD found!"
+          exit 0
+        fi
+        echo "Attempt $i/30: CRD not found yet, waiting 5 seconds..."
+        sleep 5
+      done
+      echo "Error: Timed out waiting for ClickHouseInstallation CRD."
+      exit 1
+    EOT
+  }
+}
+
+
 # Deploy ClickHouse Cluster using the Operator's Custom Resource
-resource "kubernetes_manifest" "clickhouse_cluster" {
-  manifest = yamldecode(templatefile("${path.module}/manifests/clickhouse-installation.yaml.tpl", {
+# We use kubectl_manifest instead of kubernetes_manifest to avoid plan-time schema validation issues with CRDs
+# that are created in the same apply run.
+resource "kubectl_manifest" "clickhouse_cluster" {
+  yaml_body = templatefile("${path.module}/manifests/clickhouse-installation.yaml.tpl", {
     k8s_namespace       = kubernetes_namespace.energyhub_ns.metadata[0].name
     s3_backup_endpoint  = "http://${local.backup_host}:${var.minio_api_port}"
     s3_backup_bucket    = var.s3_backup_bucket
@@ -172,10 +210,10 @@ resource "kubernetes_manifest" "clickhouse_cluster" {
     clickhouse_user     = var.clickhouse_user
     clickhouse_password = var.clickhouse_password
     local_ssd_data_path = var.local_ssd_data_path
-  }))
+  })
 
   depends_on = [
-    helm_release.clickhouse_operator,
+    null_resource.wait_for_crd_registration,
     kubernetes_secret.s3_credentials,
     docker_container.minio_backup_remote,
     docker_container.minio_backup_local

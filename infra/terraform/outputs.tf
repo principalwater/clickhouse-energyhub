@@ -35,7 +35,23 @@ output "clickhouse_connection_info" {
   2. Port-forward the service to your local machine:
      kubectl port-forward svc/<service-name-from-step-1> 8123:8123 -n ${var.k8s_namespace}
 
-  3. Connect using the clickhouse-client or any HTTP client:
-     clickhouse-client --host localhost --port 8123 --user ${var.clickhouse_user} --password <your_password>
+  3. Connect using the clickhouse-client or any HTTP client (use the 'clickhouse_user' and 'clickhouse_password' you defined in your variables):
+     clickhouse-client --host localhost --port 8123 --user <your_user> --password <your_password>
+  EOT
+}
+
+output "clickhouse_pod_access" {
+  description = "How to get a shell inside a ClickHouse pod (equivalent to 'docker exec')."
+  value       = <<-EOT
+  To run 'clickhouse-client' directly inside the running container (the Kubernetes way):
+  
+  1. Find the pod name. It will look like 'chi-energyhub-cluster-dwh-prod-0-0-0'.
+     kubectl get pods -n ${var.k8s_namespace}
+
+  2. Use 'kubectl exec' to get an interactive shell inside the pod:
+     kubectl exec -it <pod-name-from-step-1> -n ${var.k8s_namespace} -- /bin/sh
+
+  3. Once inside the pod, you can use the client (use the 'clickhouse_user' and 'clickhouse_password' you defined in your variables):
+     clickhouse-client --user <your_user> --password <your_password>
   EOT
 }

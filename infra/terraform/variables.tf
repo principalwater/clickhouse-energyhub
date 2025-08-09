@@ -19,7 +19,7 @@ variable "k8s_namespace" {
 variable "clickhouse_operator_version" {
   description = "Version of the Altinity ClickHouse Operator Helm chart."
   type        = string
-  default     = "0.23.0"
+  default     = "0.25.3"
 }
 
 variable "clickhouse_image" {
