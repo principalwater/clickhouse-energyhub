@@ -9,6 +9,9 @@
 # Docker
 docker-compose.override.yml
 
+# Clickhouse
+ch_data/
+
 # Python
 __pycache__/
 *.pyc

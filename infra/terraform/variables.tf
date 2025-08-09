@@ -1,122 +1,164 @@
-# ------------------------------------------------------------------------------
-# General Project & K8s Variables
-# ------------------------------------------------------------------------------
-variable "project_name" {
-  description = "A name for the project to prefix resources."
-  type        = string
-  default     = "energyhub"
+variable "clickhouse_base_path" {
+  type    = string
+  default = "../clickhouse/volumes"
 }
 
-variable "k8s_namespace" {
-  description = "Kubernetes namespace to deploy all resources into."
-  type        = string
-  default     = "energyhub"
+variable "memory_limit" {
+  type    = number
+  default = 12884901888 # 12 * 1024 * 1024 * 1024
 }
 
-# ------------------------------------------------------------------------------
-# Service Versions (Matching reference project)
-# ------------------------------------------------------------------------------
-variable "clickhouse_operator_version" {
-  description = "Version of the Altinity ClickHouse Operator Helm chart."
+variable "super_user_name" {
+  description = "Основной пользователь ClickHouse (например, your_awesome_user)"
   type        = string
-  default     = "0.25.3"
+  default     = "su"
 }
 
-variable "clickhouse_image" {
-  description = "The full Docker image for ClickHouse server to be deployed by the operator."
+variable "bi_user_name" {
+  description = "BI пользователь ClickHouse (например, bi_user), readonly доступ"
   type        = string
-  default     = "clickhouse/clickhouse-server:25.5.2-alpine"
+  default     = "bi_user"
+}
+
+variable "super_user_password" {
+  description = "Пароль super_user (plain, только через env!)"
+  type        = string
+  sensitive   = true
+}
+
+variable "bi_user_password" {
+  description = "Пароль bi_user (plain, только через env!)"
+  type        = string
+  sensitive   = true
+}
+
+variable "ch_version" {
+  description = "ClickHouse server version"
+  type        = string
+  default     = "25.5.2-alpine"
+}
+
+variable "chk_version" {
+  description = "ClickHouse keeper version"
+  type        = string
+  default     = "25.5.2-alpine"
 }
 
 variable "minio_version" {
-  description = "Version of MinIO to use for S3-compatible storage."
+  description = "MinIO version"
   type        = string
   default     = "RELEASE.2025-07-23T15-54-02Z"
 }
 
-# ------------------------------------------------------------------------------
-# Host and Path Configuration
-# These paths must be absolute and exist on the respective machines.
-# ------------------------------------------------------------------------------
-variable "local_ssd_data_path" {
-  description = "Absolute path on the main host (Mac Studio) to store ClickHouse data volumes. This directory will be mounted into the Kubernetes cluster."
+variable "ch_uid" {
+  description = "UID для clickhouse пользователя в контейнере"
   type        = string
+  default     = "101"
 }
 
-variable "use_remote_backup_host" {
-  description = "Set to true to use a remote machine for backups. If false, MinIO will be run locally on the main host."
+variable "ch_gid" {
+  description = "GID для clickhouse пользователя в контейнере"
+  type        = string
+  default     = "101"
+}
+
+# Переменные для управления портами
+variable "use_standard_ports" {
+  description = "Использовать стандартные порты для всех нод ClickHouse."
   type        = bool
   default     = true
 }
 
-variable "remote_backup_host" {
-  description = "Hostname or IP address of the remote backup server (e.g., Raspberry Pi). Only used if use_remote_backup_host is true."
-  type        = string
-  default     = "water-rpi.local"
+variable "ch_http_port" {
+  description = "Стандартный HTTP порт для ClickHouse."
+  type        = number
+  default     = 8123
 }
 
-variable "remote_ssh_user" {
-  description = "SSH user for connecting to the remote backup host. Ensure SSH keys are configured."
-  type        = string
+variable "ch_tcp_port" {
+  description = "Стандартный TCP порт для ClickHouse."
+  type        = number
+  default     = 9000
 }
 
-variable "remote_backup_path" {
-  description = "Absolute path on the remote host to store MinIO backup data. Only used if use_remote_backup_host is true."
-  type        = string
+variable "ch_replication_port" {
+  description = "Стандартный порт репликации для ClickHouse."
+  type        = number
+  default     = 9001
 }
 
-variable "local_backup_path" {
-  description = "Absolute path on the main host to store MinIO backup data. Only used if use_remote_backup_host is false."
-  type        = string
-  default     = "" # Must be provided by user if use_remote_backup_host is false
-}
-
-# ------------------------------------------------------------------------------
-# S3/MinIO & ClickHouse Credentials
-# It's highly recommended to populate these via a terraform.tfvars.json file or environment variables.
-# ------------------------------------------------------------------------------
+# MinIO and Backup variables
 variable "minio_root_user" {
-  description = "Root username for MinIO."
+  description = "Пользователь для доступа к MinIO"
   type        = string
   sensitive   = true
 }
 
 variable "minio_root_password" {
-  description = "Root password for MinIO."
+  description = "Пароль для доступа к MinIO"
   type        = string
   sensitive   = true
 }
 
-variable "clickhouse_user" {
-  description = "Default admin user for the ClickHouse cluster."
+variable "remote_ssh_user" {
+  description = "Имя пользователя для SSH-доступа к удаленному хосту"
   type        = string
-  default     = "admin"
-  sensitive   = true
 }
 
-variable "clickhouse_password" {
-  description = "Password for the ClickHouse admin user."
+variable "ssh_private_key_path" {
+  description = "Путь к приватному SSH-ключу для доступа к удаленному хосту"
   type        = string
-  sensitive   = true
+  default     = "~/.ssh/id_rsa"
 }
 
-# ------------------------------------------------------------------------------
-# S3/MinIO Network & Bucket Configuration
-# ------------------------------------------------------------------------------
-variable "minio_api_port" {
-  description = "API port for the MinIO container."
+variable "local_minio_port" {
+  description = "Порт для локального MinIO"
+  type        = number
+  default     = 9010
+}
+
+variable "remote_minio_port" {
+  description = "Порт для удаленного MinIO (backup)"
   type        = number
   default     = 9000
 }
 
-variable "minio_console_port" {
-  description = "Web console port for the MinIO container."
-  type        = number
-  default     = 9001
+variable "storage_type" {
+  description = "Тип основного хранилища для ClickHouse: 'local_ssd' или 's3_ssd'"
+  type        = string
+  default     = "local_ssd"
+  validation {
+    condition     = contains(["local_ssd", "s3_ssd"], var.storage_type)
+    error_message = "Допустимые значения для storage_type: 'local_ssd' или 's3_ssd'."
+  }
 }
 
-variable "s3_backup_bucket" {
-  description = "Name of the S3 bucket to create for backups."
+variable "local_minio_path" {
+  description = "Путь к данным для локального MinIO на внешнем SSD"
+  type        = string
+  default     = "/Users/principalwater/docker_volumes/minio/data"
+}
+
+variable "remote_minio_path" {
+  description = "Путь к данным для удаленного MinIO на Raspberry Pi"
+  type        = string
+  default     = "/mnt/ssd/minio/data"
+}
+
+variable "remote_host_name" {
+  description = "Имя хоста для удаленного MinIO"
+  type        = string
+  default     = "water-rpi.local"
+}
+
+variable "bucket_backup" {
+  description = "Имя бакета для бэкапов"
   type        = string
   default     = "clickhouse-backups"
+}
+
+variable "bucket_storage" {
+  description = "Имя бакета для S3 хранилища"
+  type        = string
+  default     = "clickhouse-storage-bucket"
 }
