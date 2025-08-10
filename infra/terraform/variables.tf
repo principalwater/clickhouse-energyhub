@@ -123,13 +123,19 @@ variable "remote_minio_port" {
   default     = 9000
 }
 
+variable "local_backup_minio_port" {
+  description = "Порт для локального MinIO (backup)"
+  type        = number
+  default     = 9020
+}
+
 variable "storage_type" {
   description = "Тип основного хранилища для ClickHouse: 'local_ssd' или 's3_ssd'"
   type        = string
   default     = "local_ssd"
   validation {
-    condition     = contains(["local_ssd", "s3_ssd"], var.storage_type)
-    error_message = "Допустимые значения для storage_type: 'local_ssd' или 's3_ssd'."
+    condition     = contains(["local_ssd", "s3_ssd", "local_storage"], var.storage_type)
+    error_message = "Допустимые значения для storage_type: 'local_ssd', 's3_ssd' или 'local_storage'."
   }
 }
 
@@ -143,6 +149,12 @@ variable "remote_minio_path" {
   description = "Путь к данным для удаленного MinIO на Raspberry Pi"
   type        = string
   default     = "/mnt/ssd/minio/data"
+}
+
+variable "local_backup_minio_path" {
+  description = "Путь к данным для локального MinIO (backup)"
+  type        = string
+  default     = "../minio_backup/data"
 }
 
 variable "remote_host_name" {

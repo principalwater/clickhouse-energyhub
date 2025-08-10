@@ -88,7 +88,9 @@ module "clickhouse_cluster" {
   storage_type         = var.storage_type
   local_minio_path     = var.local_minio_path
   remote_minio_path    = var.remote_minio_path
+  local_backup_minio_path = var.local_backup_minio_path
   remote_host_name     = var.remote_host_name
   bucket_backup        = var.bucket_backup
   bucket_storage       = var.bucket_storage
+  local_backup_minio_port = var.local_backup_minio_port
 }

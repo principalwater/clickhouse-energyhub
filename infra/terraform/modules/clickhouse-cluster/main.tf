@@ -226,11 +226,19 @@ resource "docker_container" "ch_nodes" {
     source = abspath("${var.clickhouse_base_path}/${each.key}/logs")
     type   = "bind"
   }
-  depends_on = [docker_container.keeper, local_file.config_xml, local_file.users_xml, null_resource.minio_buckets]
+  depends_on = [
+    docker_container.keeper,
+    local_file.config_xml,
+    local_file.users_xml,
+    null_resource.remote_minio_bucket,
+    null_resource.local_backup_minio_bucket,
+    null_resource.local_storage_minio_bucket
+  ]
 }
 
 # --- MinIO (S3) ---
 
+# --- Local MinIO for S3-based main storage (s3_ssd mode) ---
 resource "null_resource" "mk_local_minio_dir" {
   count = var.storage_type == "s3_ssd" ? 1 : 0
   provisioner "local-exec" {
@@ -238,7 +246,6 @@ resource "null_resource" "mk_local_minio_dir" {
   }
 }
 
-# Local MinIO for S3-based storage
 resource "docker_container" "minio_local" {
   count   = var.storage_type == "s3_ssd" ? 1 : 0
   name    = "minio-local-storage"
@@ -265,8 +272,78 @@ resource "docker_container" "minio_local" {
   depends_on = [null_resource.mk_local_minio_dir]
 }
 
-# Remote MinIO for backups
+resource "null_resource" "wait_for_local_minio" {
+  count = var.storage_type == "s3_ssd" ? 1 : 0
+  provisioner "local-exec" {
+    command = <<EOT
+      for i in {1..30}; do
+        if curl -s "http://localhost:${var.local_minio_port}/minio/health/live" &> /dev/null; then
+          echo "Local MinIO is ready!"
+          break
+        fi
+        echo "Attempt $i/30 - Local MinIO not ready yet, waiting 10 seconds..."
+        sleep 10
+      done
+    EOT
+  }
+  depends_on = [docker_container.minio_local]
+}
+
+# --- Local MinIO for Backups (local_storage mode) ---
+resource "null_resource" "mk_local_backup_minio_dir" {
+  count = var.storage_type == "local_storage" ? 1 : 0
+  provisioner "local-exec" {
+    command = "mkdir -p ${var.local_backup_minio_path}"
+  }
+}
+
+resource "docker_container" "minio_local_backup" {
+  count   = var.storage_type == "local_storage" ? 1 : 0
+  name    = "minio-local-backup"
+  image   = docker_image.minio.name
+  restart = "always"
+  networks_advanced {
+    name = docker_network.ch_net.name
+  }
+  ports {
+    internal = 9000
+    external = var.local_backup_minio_port
+  }
+  ports {
+    internal = 9001
+    external = var.local_backup_minio_port + 1
+  }
+  mounts {
+    source = abspath(var.local_backup_minio_path)
+    target = "/data"
+    type   = "bind"
+  }
+  env        = ["MINIO_ROOT_USER=${var.minio_root_user}", "MINIO_ROOT_PASSWORD=${var.minio_root_password}", "CONSOLE_AGPL_LICENSE_ACCEPTED=yes"]
+  command    = ["server", "/data", "--console-address", ":9001"]
+  depends_on = [null_resource.mk_local_backup_minio_dir]
+}
+
+resource "null_resource" "wait_for_local_backup_minio" {
+  count = var.storage_type == "local_storage" ? 1 : 0
+  provisioner "local-exec" {
+    command = <<EOT
+      for i in {1..30}; do
+        if curl -s "http://localhost:${var.local_backup_minio_port}/minio/health/live" &> /dev/null; then
+          echo "Local Backup MinIO is ready!"
+          break
+        fi
+        echo "Attempt $i/30 - Local Backup MinIO not ready yet, waiting 10 seconds..."
+        sleep 10
+      done
+    EOT
+  }
+  depends_on = [docker_container.minio_local_backup]
+}
+
+
+# --- Remote MinIO for Backups (all modes except local_storage) ---
 resource "docker_container" "minio_remote_backup" {
+  count    = var.storage_type != "local_storage" ? 1 : 0
   provider = docker.remote_host
   name     = "minio-remote-backup"
   image    = docker_image.minio.name
@@ -287,8 +364,8 @@ resource "docker_container" "minio_remote_backup" {
   command = ["server", "/data", "--console-address", ":9001"]
 }
 
-# Health Checks for MinIO
 resource "null_resource" "wait_for_remote_minio" {
+  count = var.storage_type != "local_storage" ? 1 : 0
   provisioner "remote-exec" {
     inline = [
       "echo 'Waiting for MinIO to be ready...'",
@@ -306,40 +383,33 @@ resource "null_resource" "wait_for_remote_minio" {
       host = var.remote_host_name
     }
   }
-  depends_on = [docker_container.minio_remote_backup]
+  depends_on = [docker_container.minio_remote_backup[0]]
 }
 
-resource "null_resource" "wait_for_local_minio" {
-  count = var.storage_type == "s3_ssd" ? 1 : 0
-  provisioner "local-exec" {
-    command = <<EOT
-      for i in {1..30}; do
-        if curl -s "http://localhost:${var.local_minio_port}/minio/health/live" &> /dev/null; then
-          echo "Local MinIO is ready!"
-          break
-        fi
-        echo "Attempt $i/30 - Local MinIO not ready yet, waiting 10 seconds..."
-        sleep 10
-      done
-    EOT
-  }
-  depends_on = [docker_container.minio_local]
-}
 
 # --- S3 Buckets ---
-resource "null_resource" "minio_buckets" {
+resource "null_resource" "remote_minio_bucket" {
+  count = var.storage_type != "local_storage" ? 1 : 0
   provisioner "local-exec" {
     command = "mc alias set remote_backup http://${var.remote_host_name}:${var.remote_minio_port} ${var.minio_root_user} ${var.minio_root_password} --api S3v4 && mc mb --ignore-existing remote_backup/${var.bucket_backup}"
   }
+  depends_on = [null_resource.wait_for_remote_minio[0]]
+}
 
+resource "null_resource" "local_backup_minio_bucket" {
+  count = var.storage_type == "local_storage" ? 1 : 0
   provisioner "local-exec" {
-    command = var.storage_type == "s3_ssd" ? "mc alias set local_storage http://localhost:${var.local_minio_port} ${var.minio_root_user} ${var.minio_root_password} --api S3v4 && mc mb --ignore-existing local_storage/${var.bucket_storage}" : "echo 'Skipping local bucket creation'"
+    command = "mc alias set local_backup http://localhost:${var.local_backup_minio_port} ${var.minio_root_user} ${var.minio_root_password} --api S3v4 && mc mb --ignore-existing local_backup/${var.bucket_backup}"
   }
+  depends_on = [null_resource.wait_for_local_backup_minio[0]]
+}
 
-  depends_on = [
-    null_resource.wait_for_remote_minio,
-    null_resource.wait_for_local_minio
-  ]
+resource "null_resource" "local_storage_minio_bucket" {
+  count = var.storage_type == "s3_ssd" ? 1 : 0
+  provisioner "local-exec" {
+    command = "mc alias set local_storage http://localhost:${var.local_minio_port} ${var.minio_root_user} ${var.minio_root_password} --api S3v4 && mc mb --ignore-existing local_storage/${var.bucket_storage}"
+  }
+  depends_on = [null_resource.wait_for_local_minio[0]]
 }
 
 # --- ClickHouse Backup ---
@@ -368,15 +438,20 @@ resource "docker_container" "clickhouse_backup" {
     "CLICKHOUSE_USERNAME=${var.super_user_name}",
     "CLICKHOUSE_PASSWORD=${var.super_user_password}",
     "REMOTE_STORAGE=s3",
-    "S3_BUCKET=clickhouse-backups",
+    "S3_BUCKET=${var.bucket_backup}",
     "S3_ACCESS_KEY=${var.minio_root_user}",
     "S3_SECRET_KEY=${var.minio_root_password}",
-    "S3_ENDPOINT=http://${var.remote_host_name}:${var.remote_minio_port}",
+    "S3_ENDPOINT=${var.storage_type == "local_storage" ? "http://minio-local-backup:${var.local_backup_minio_port}" : "http://${var.remote_host_name}:${var.remote_minio_port}"}",
     "S3_REGION=us-east-1",
     "S3_DISABLE_SSL=true",
     "S3_FORCE_PATH_STYLE=true"
   ]
-  depends_on = [docker_container.ch_nodes, null_resource.minio_buckets]
+  depends_on = [
+    docker_container.ch_nodes,
+    null_resource.remote_minio_bucket,
+    null_resource.local_backup_minio_bucket,
+    null_resource.local_storage_minio_bucket
+  ]
 }
 
 # .env file
