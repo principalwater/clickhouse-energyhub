@@ -28,7 +28,16 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: '1.7.5'
+          terraform_version: '1.T.5'
+
+      - name: Disable Remote Docker Provider for Local Storage Mode
+        if: ${{ env.storage_type == 'local_storage' }}
+        run: |
+          echo "Disabling remote Docker provider for local storage mode..."
+          sed -i.bak -e '/provider "docker" {/,/}/ { /alias = "remote_host"/, /}/ s/^/#/g; }' infra/terraform/main.tf
+          echo "--- infra/terraform/main.tf after modification ---"
+          cat infra/terraform/main.tf
+          echo "------------------------------------------------"
 
       - name: Load sensitive variables from variables.tf
         id: load-vars
@@ -90,9 +99,11 @@ jobs:
         working-directory: infra/terraform
 
       - name: Terraform Plan
+        env:
+          storage_type: local_storage
         run: |
           # Override base path and set storage_type to local_storage for CI context.
-          terraform plan -out=tfplan ${{ steps.load-vars.outputs.vars }} -var="clickhouse_base_path=../../ch_data" -var="storage_type=local_storage"
+          terraform plan -out=tfplan ${{ steps.load-vars.outputs.vars }} -var="clickhouse_base_path=../../ch_data" -var="storage_type=${{ env.storage_type }}"
           terraform show -no-color tfplan > plan.txt
         working-directory: infra/terraform
 
