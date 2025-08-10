@@ -16,11 +16,16 @@ jobs:
       run:
         shell: bash
     env:
+      # ClickHouse Cluster Secrets
       SUPER_USER_PASSWORD: ${{ secrets.SUPER_USER_PASSWORD }}
       BI_USER_PASSWORD: ${{ secrets.BI_USER_PASSWORD }}
       MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
       MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
       REMOTE_SSH_USER: ${{ secrets.REMOTE_SSH_USER }}
+      # BI Infra Secrets
+      PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+      SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
+      SUPERSET_SECRET_KEY: ${{ secrets.SUPERSET_SECRET_KEY }}
       # Set storage_type at the job level to make it available for the 'if' condition in steps
       storage_type: local_storage
     steps:
@@ -93,8 +98,11 @@ jobs:
 
       - name: Terraform Plan
         run: |
-          # Override base path and set storage_type to local_storage for CI context.
-          terraform plan -out=tfplan ${{ steps.load-vars.outputs.vars }} -var="clickhouse_base_path=../../ch_data" -var="storage_type=local_storage"
+          # Override paths and set storage_type for CI context
+          terraform plan -out=tfplan ${{ steps.load-vars.outputs.vars }} \
+            -var="clickhouse_base_path=../../volumes/clickhouse" \
+            -var="bi_postgres_data_path=../../volumes/postgres/data" \
+            -var="storage_type=local_storage"
           terraform show -no-color tfplan > plan.txt
         working-directory: infra/terraform
 

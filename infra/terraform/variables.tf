@@ -1,6 +1,7 @@
 variable "clickhouse_base_path" {
-  type    = string
-  default = "../clickhouse/volumes"
+  description = "Путь к данным и конфигурациям ClickHouse."
+  type        = string
+  default     = "../../volumes/clickhouse"
 }
 
 variable "memory_limit" {
@@ -173,4 +174,128 @@ variable "bucket_storage" {
   description = "Имя бакета для S3 хранилища"
   type        = string
   default     = "clickhouse-storage-bucket"
+}
+
+# --------------------------------------------------------------------------------------------------
+# BI Infra Variables
+# --------------------------------------------------------------------------------------------------
+
+variable "deploy_superset" {
+  description = "Развернуть Apache Superset."
+  type        = bool
+  default     = true
+}
+
+variable "deploy_metabase" {
+  description = "Развернуть Metabase."
+  type        = bool
+  default     = true
+}
+
+variable "postgres_version" {
+  description = "Версия Docker-образа Postgres для BI."
+  type        = string
+  default     = "16"
+}
+
+variable "metabase_version" {
+  description = "Версия Docker-образа Metabase."
+  type        = string
+  default     = "v0.49.8"
+}
+
+variable "superset_version" {
+  description = "Версия Docker-образа Superset."
+  type        = string
+  default     = "3.1.1"
+}
+
+variable "metabase_port" {
+  description = "Порт для UI Metabase."
+  type        = number
+  default     = 3000
+}
+
+variable "superset_port" {
+  description = "Порт для UI Superset."
+  type        = number
+  default     = 8088
+}
+
+variable "pg_password" {
+  description = "Пароль для суперпользователя Postgres в BI-инфраструктуре."
+  type        = string
+  sensitive   = true
+}
+
+variable "sa_username" {
+  description = "Имя главного администратора для Metabase и Superset."
+  type        = string
+  default     = "admin"
+}
+
+variable "sa_password" {
+  description = "Пароль главного администратора для Metabase и Superset."
+  type        = string
+  sensitive   = true
+}
+
+variable "superset_secret_key" {
+  description = "Секретный ключ для безопасности Superset."
+  type        = string
+  sensitive   = true
+}
+
+variable "postgres_restore_enabled" {
+  description = "Включить восстановление/инициализацию Postgres."
+  type        = bool
+  default     = true
+}
+
+variable "metabase_pg_user" {
+  description = "Имя пользователя Postgres для БД Metabase."
+  type        = string
+  default     = "metabase"
+}
+
+variable "superset_pg_user" {
+  description = "Имя пользователя Postgres для БД Superset."
+  type        = string
+  default     = "superset"
+}
+
+variable "metabase_pg_db" {
+  description = "Имя БД для Metabase."
+  type        = string
+  default     = "metabaseappdb"
+}
+
+variable "superset_pg_db" {
+  description = "Имя БД для метаданных Superset."
+  type        = string
+  default     = "superset"
+}
+
+variable "metabase_site_name" {
+  description = "Имя сайта Metabase."
+  type        = string
+  default     = "EnergyHub Metabase"
+}
+
+variable "bi_postgres_data_path" {
+  description = "Путь к данным Postgres для BI-инструментов."
+  type        = string
+  default     = "../../volumes/postgres/data"
+}
+
+variable "metabase_local_users" {
+  description = "Список локальных пользователей Metabase для создания через API. Оставьте пустым для использования sa_username и bi_user."
+  type        = any
+  default     = []
+}
+
+variable "superset_local_users" {
+  description = "Список локальных пользователей Superset для создания через API. Оставьте пустым для использования sa_username и bi_user."
+  type        = any
+  default     = []
 }
