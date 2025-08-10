@@ -1,14 +1,14 @@
 terraform {
   required_providers {
     docker = {
-      source  = "kreuzwerker/docker"
-      version = "3.6.1"
-      configuration_aliases = [ docker.remote_host ]
+      source                = "kreuzwerker/docker"
+      version               = "3.6.1"
+      configuration_aliases = [docker.remote_host]
     }
     aws = {
-      source  = "hashicorp/aws"
-      version = "6.4.0"
-      configuration_aliases = [ aws.remote_backup, aws.local_storage ]
+      source                = "hashicorp/aws"
+      version               = "6.4.0"
+      configuration_aliases = [aws.remote_backup, aws.local_storage]
     }
   }
 }
