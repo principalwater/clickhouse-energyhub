@@ -1,0 +1,28 @@
+name: Auto Approve by Bot
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    # Даем права на запись в Pull Request
+    permissions:
+      pull-requests: write
+    # Условие:
+    # 1. Комментарий оставлен в Pull Request.
+    # 2. Текст комментария в точности "/approve".
+    # 3. Автор комментария - создатель репозитория.
+    if: |
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/approve' &&
+      github.actor == 'principalwater'
+    steps:
+      - name: Auto-approve PR
+        uses: hmarr/auto-approve-action@v4
+        with:
+          # Используем Personal Access Token (PAT) пользователя-бота
+          github-token: ${{ secrets.ELEMENTARY_FLOW_BOT_PAT }}
+          # Номер PR берём из контекста события комментария
+          pull-request-number: ${{ github.event.issue.number }}
