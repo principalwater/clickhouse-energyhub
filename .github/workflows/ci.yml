@@ -91,7 +91,8 @@ jobs:
 
       - name: Terraform Plan
         run: |
-          terraform plan -out=tfplan ${{ steps.load-vars.outputs.vars }}
+          # The -var flag is added to override the default base path, which is incorrect in the CI context.
+          terraform plan -out=tfplan ${{ steps.load-vars.outputs.vars }} -var="clickhouse_base_path=../../ch_data"
           terraform show -no-color tfplan > plan.txt
         working-directory: infra/terraform
 
