@@ -129,7 +129,7 @@ module "bi_infra" {
   superset_pg_db           = var.superset_pg_db
 
   # Metabase settings
-  metabase_site_name = var.metabase_site_name
+  metabase_site_name    = var.metabase_site_name
   bi_postgres_data_path = var.bi_postgres_data_path
 
   # User lists (defaults to empty list)
