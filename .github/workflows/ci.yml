@@ -10,43 +10,8 @@ on:
       - master                    # Automatic check after merge to master.
 
 jobs:
-  find-terraform-dirs:
-    runs-on: ubuntu-latest
-    outputs:
-      tf_dirs: ${{ steps.set-dirs.outputs.tf_dirs }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Find Terraform directories
-        id: set-dirs
-        run: |
-          # Find all directories containing main.tf files, excluding those ignored by .gitignore.
-          mapfile -t dirs < <(find . -type f -name 'main.tf' \
-            | grep -vFf <(git check-ignore $(find . -type f -name 'main.tf') 2>/dev/null || true) \
-            | xargs -I {} dirname {} | sort -u)
-          echo "Found Terraform directories:"
-          printf '%s\n' "${dirs[@]}"
-          clean_dirs=()
-          for d in "${dirs[@]}"; do
-            d_clean=$(echo "$d" | xargs)
-            [ -n "$d_clean" ] && clean_dirs+=("$d_clean")
-          done
-          printf '%s\n' "${clean_dirs[@]}" | jq -R . | jq -s . | tr -d ' \n' > tf_dirs.json
-          echo "tf_dirs=$(cat tf_dirs.json)" >> $GITHUB_OUTPUT
-
-      - name: Inspect tf_dirs.json
-        run: |
-          # Display the contents of tf_dirs.json for verification.
-          echo "[INSPECT] Contents of tf_dirs.json:"
-          cat tf_dirs.json
-
   terraform:
-    needs: find-terraform-dirs
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dir: ${{ fromJson(needs.find-terraform-dirs.outputs.tf_dirs) }}
     defaults:
       run:
         shell: bash
@@ -68,12 +33,11 @@ jobs:
       - name: Load sensitive variables from variables.tf
         id: load-vars
         run: |
-           set +e  # Disable immediate exit to allow debugging errors.
+           set +e
            VARS=""
-           if [ -f "${{ matrix.dir }}/variables.tf" ]; then
+           if [ -f "infra/terraform/variables.tf" ]; then
              sensitive_no_default=()
              all_no_default=()
-             # Extract sensitive variables without default values.
              while read -r var; do
                sensitive_no_default+=("$var")
              done < <(awk '
@@ -82,8 +46,7 @@ jobs:
                /sensitive *= *true/ { sensitive=1; }
                /default *=/ { has_default=1; }
                END { if (var && sensitive && !has_default) print var; }
-             ' "${{ matrix.dir }}/variables.tf" | tr -d '"{}')
-             # Extract all variables without default values.
+             ' "infra/terraform/variables.tf" | tr -d '"{}')
              while read -r var; do
                all_no_default+=("$var")
              done < <(awk '
@@ -91,8 +54,7 @@ jobs:
                /variable / { if (var && !has_default) print var; var=$2; has_default=0; }
                /default *=/ { has_default=1; }
                END { if (var && !has_default) print var; }
-             ' "${{ matrix.dir }}/variables.tf" | tr -d '"{}')
-             # Combine lists and remove duplicates.
+             ' "infra/terraform/variables.tf" | tr -d '"{}')
              combined=()
              declare -A seen=()
              for v in "${sensitive_no_default[@]}" "${all_no_default[@]}"; do
@@ -116,50 +78,28 @@ jobs:
            echo "vars=$VARS" >> $GITHUB_OUTPUT
 
       - name: Terraform Init
-        run: |
-          set -ex  # Enable detailed output and stop on errors.
-          echo "[TF INIT] Running terraform init in ${{ matrix.dir }}"  # Before init.
-          terraform init -backend=false
-          echo "[TF INIT] Completed terraform init"  # After init.
-        working-directory: ${{ matrix.dir }}
+        run: terraform init -backend=false
+        working-directory: infra/terraform
 
       - name: Terraform Validate
-        run: |
-          set -ex  # Enable detailed output and stop on errors.
-          echo "[TF VALIDATE] Running terraform validate in ${{ matrix.dir }}"  # Before validate.
-          terraform validate
-          echo "[TF VALIDATE] Completed terraform validate"  # After validate.
-        working-directory: ${{ matrix.dir }}
+        run: terraform validate
+        working-directory: infra/terraform
 
       - name: Terraform Format Check
-        run: |
-          set -ex  # Enable detailed output and stop on errors.
-          echo "[TF FMT] Running terraform fmt -check in ${{ matrix.dir }}"  # Before fmt.
-          terraform fmt -check
-          echo "[TF FMT] Completed terraform fmt -check"  # After fmt.
-        working-directory: ${{ matrix.dir }}
+        run: terraform fmt -check
+        working-directory: infra/terraform
 
       - name: Terraform Plan
         run: |
-          set -ex  # Enable detailed output and stop on errors.
-          echo "[TF PLAN] Running terraform plan in ${{ matrix.dir }}"  # Before plan.
           terraform plan -out=tfplan ${{ steps.load-vars.outputs.vars }}
           terraform show -no-color tfplan > plan.txt
-          echo "[TF PLAN] Completed terraform plan and saved plan.txt"  # After plan.
-        working-directory: ${{ matrix.dir }}
-
-      - name: Sanitize artifact name
-        id: sanitize
-        run: |
-          dir="${{ matrix.dir }}"
-          dir_sanitized=$(echo "$dir" | sed 's#^\./##' | tr '/.' '-' )
-          echo "dir_sanitized=$dir_sanitized" >> $GITHUB_OUTPUT
+        working-directory: infra/terraform
 
       - name: Upload Terraform plan artifact
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-plan-${{ steps.sanitize.outputs.dir_sanitized }}
-          path: ${{ matrix.dir }}/plan.txt
+          name: terraform-plan
+          path: infra/terraform/plan.txt
 
   python-lint:
     runs-on: ubuntu-latest
