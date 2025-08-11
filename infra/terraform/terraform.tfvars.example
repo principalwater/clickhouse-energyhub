@@ -50,3 +50,31 @@ topic_5min    = "energy_data_5min"
 portainer_version    = "2.19.4"
 portainer_https_port = 9443
 portainer_agent_port = 9000
+
+# ----------------------------------
+# AIRFLOW КОНФИГУРАЦИЯ (ОПЦИОНАЛЬНО)
+# ----------------------------------
+# Раскомментируйте и настройте для развертывания Apache Airflow
+
+# deploy_airflow = true
+
+# Версии для Airflow
+# airflow_version = "2.8.1"
+# redis_version = "7.2-alpine"
+
+# Порты для Airflow
+# airflow_webserver_port = 8080
+# airflow_flower_port = 5555
+
+# Пароли для Airflow (ОБЯЗАТЕЛЬНО при включении)
+# airflow_postgres_password = "YOUR_AIRFLOW_POSTGRES_PASSWORD"
+# airflow_admin_password = "YOUR_AIRFLOW_ADMIN_PASSWORD"
+# airflow_fernet_key = "YOUR_FERNET_KEY" # Сгенерируйте командой: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# airflow_webserver_secret_key = "YOUR_AIRFLOW_SECRET_KEY" # Сгенерируйте командой: openssl rand -base64 32
+
+# Пути к директориям Airflow (можно оставить по умолчанию)
+# airflow_redis_data_path = "../../volumes/airflow/redis"
+# airflow_dags_path = "../../volumes/airflow/dags"
+# airflow_logs_path = "../../volumes/airflow/logs"
+# airflow_plugins_path = "../../volumes/airflow/plugins"
+# airflow_config_path = "../../volumes/airflow/config"

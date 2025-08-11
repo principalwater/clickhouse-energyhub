@@ -95,6 +95,39 @@ module "clickhouse_cluster" {
   local_backup_minio_port = var.local_backup_minio_port
 }
 
+module "postgres" {
+  source = "./modules/postgres"
+
+  # Основные настройки
+  enable_postgres = var.deploy_metabase || var.deploy_superset || var.deploy_airflow
+  postgres_version = var.postgres_version
+  postgres_data_path = var.bi_postgres_data_path
+  postgres_superuser_password = var.pg_password
+  postgres_restore_enabled = var.postgres_restore_enabled
+
+  # Флаги сервисов
+  enable_metabase = var.deploy_metabase
+  enable_superset = var.deploy_superset
+  enable_airflow = var.deploy_airflow
+
+  # Metabase настройки
+  metabase_pg_user = var.metabase_pg_user
+  metabase_pg_password = var.pg_password
+  metabase_pg_db = var.metabase_pg_db
+
+  # Superset настройки
+  superset_pg_user = var.superset_pg_user
+  superset_pg_password = var.pg_password
+  superset_pg_db = var.superset_pg_db
+
+  # Airflow настройки
+  airflow_pg_user = var.airflow_postgres_user
+  airflow_pg_password = var.airflow_postgres_password
+  airflow_pg_db = var.airflow_postgres_db
+
+  depends_on = [module.clickhouse_cluster]
+}
+
 module "bi_infra" {
   source = "./modules/bi-infra"
 
@@ -121,35 +154,39 @@ module "bi_infra" {
   sa_username = var.sa_username
   bi_user     = var.bi_user_name # Use the main CH BI username
 
-  # Postgres settings
-  postgres_restore_enabled = var.postgres_restore_enabled
-  metabase_pg_user         = var.metabase_pg_user
-  superset_pg_user         = var.superset_pg_user
-  metabase_pg_db           = var.metabase_pg_db
-  superset_pg_db           = var.superset_pg_db
+  # Postgres settings (используем модуль postgres)
+  postgres_container_name = module.postgres.postgres_container_name
+  postgres_network_name = module.postgres.postgres_network_name
 
   # Metabase settings
   metabase_site_name    = var.metabase_site_name
-  bi_postgres_data_path = var.bi_postgres_data_path
 
   # User lists (defaults to empty list)
   metabase_local_users = var.metabase_local_users
   superset_local_users = var.superset_local_users
 
-  # Explicitly set to null to use fallback logic in the module for other vars
-  metabase_pg_password        = null
-  superset_pg_password        = null
-  metabase_sa_username        = null
-  metabase_sa_password        = null
-  metabase_bi_username        = null
-  metabase_bi_password        = null
-  superset_sa_username        = null
-  superset_sa_password        = null
-  superset_bi_username        = null
-  superset_bi_password        = null
-  postgres_superuser_password = null
+  # Metabase settings
+  metabase_pg_user = var.metabase_pg_user
+  metabase_pg_password = var.pg_password
+  metabase_pg_db = var.metabase_pg_db
+  metabase_sa_username = var.sa_username
+  metabase_sa_password = var.sa_password
+  metabase_bi_username = var.bi_user_name
+  metabase_bi_password = var.bi_user_password
 
-  depends_on = [module.clickhouse_cluster]
+  # Superset settings
+  superset_pg_user = var.superset_pg_user
+  superset_pg_password = var.pg_password
+  superset_pg_db = var.superset_pg_db
+  superset_sa_username = var.sa_username
+  superset_sa_password = var.sa_password
+  superset_bi_username = var.bi_user_name
+  superset_bi_password = var.bi_user_password
+
+  # PostgreSQL superuser password
+  postgres_superuser_password = var.pg_password
+
+  depends_on = [module.clickhouse_cluster, module.postgres]
 }
 
 module "monitoring" {
@@ -176,4 +213,49 @@ module "kafka" {
   enable_kafka_acl            = false
 
   depends_on = [module.clickhouse_cluster]
+}
+
+module "airflow" {
+  source = "./modules/airflow"
+
+  # Основные настройки
+  deploy_airflow = var.deploy_airflow
+
+  # Версии
+  airflow_version         = var.airflow_version
+  redis_version           = var.redis_version
+
+  # Порты
+  airflow_webserver_port = var.airflow_webserver_port
+  airflow_flower_port    = var.airflow_flower_port
+
+  # PostgreSQL (используем модуль postgres)
+  airflow_postgres_connection_string = module.postgres.airflow_db_connection_string
+
+  # Redis
+  airflow_redis_data_path = var.airflow_redis_data_path
+
+  # Airflow
+  airflow_admin_user           = var.airflow_admin_user
+  airflow_admin_password       = var.airflow_admin_password
+  airflow_fernet_key          = var.airflow_fernet_key
+  airflow_webserver_secret_key = var.airflow_webserver_secret_key
+
+  # Пути к директориям
+  airflow_dags_path    = var.airflow_dags_path
+  airflow_logs_path    = var.airflow_logs_path
+  airflow_plugins_path = var.airflow_plugins_path
+  airflow_config_path  = var.airflow_config_path
+
+  # Интеграция с ClickHouse
+  clickhouse_network_name = module.clickhouse_cluster.network_name
+  clickhouse_bi_user      = var.bi_user_name
+  clickhouse_bi_password  = var.bi_user_password
+
+  # Интеграция с Kafka
+  kafka_network_name = module.kafka.network_name
+  kafka_topic_1min   = var.topic_1min
+  kafka_topic_5min   = var.topic_5min
+
+  depends_on = [module.clickhouse_cluster, module.kafka, module.postgres]
 }

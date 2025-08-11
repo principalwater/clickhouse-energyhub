@@ -27,3 +27,28 @@ output "superset_db_creds" {
   }
   sensitive = true
 }
+
+output "postgres_container_name" {
+  description = "Имя контейнера PostgreSQL."
+  value       = local.any_bi_tool_enabled ? docker_container.postgres[0].name : null
+}
+
+output "postgres_network_name" {
+  description = "Имя Docker-сети PostgreSQL."
+  value       = local.any_bi_tool_enabled ? docker_network.metanet1[0].name : null
+}
+
+output "postgres_host" {
+  description = "Хост PostgreSQL для подключения."
+  value       = local.any_bi_tool_enabled ? "postgres" : null
+}
+
+output "postgres_port" {
+  description = "Порт PostgreSQL."
+  value       = 5432
+}
+
+output "postgres_superuser" {
+  description = "Имя суперпользователя PostgreSQL."
+  value       = "postgres"
+}

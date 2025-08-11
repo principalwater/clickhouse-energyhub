@@ -38,11 +38,6 @@ variable "metabase_pg_user" {
   type        = string
 }
 
-variable "postgres_restore_enabled" {
-  description = "Включить восстановление/инициализацию данных Postgres, если директория pgdata пуста."
-  type        = bool
-}
-
 variable "metabase_pg_password" {
   description = "Пароль Postgres для пользователя Metabase."
   type        = string
@@ -61,7 +56,7 @@ variable "superset_pg_password" {
 }
 
 variable "pg_password" {
-  description = "Общий пароль Postgres, используемый как fallback для Metabase и Superset."
+  description = "Общий пароль Postgres, используемый для Metabase и Superset."
   type        = string
   sensitive   = true
 }
@@ -73,11 +68,6 @@ variable "metabase_pg_db" {
 
 variable "superset_pg_db" {
   description = "Имя БД для метаданных Superset."
-  type        = string
-}
-
-variable "bi_postgres_data_path" {
-  description = "Путь к данным Postgres для BI-инструментов."
   type        = string
 }
 
@@ -187,4 +177,40 @@ variable "postgres_superuser_password" {
   description = "Пароль суперпользователя Postgres."
   type        = string
   sensitive   = true
+}
+
+# ---- Section: PostgreSQL connection from external module ----
+variable "postgres_container_name" {
+  description = "Имя контейнера PostgreSQL из внешнего модуля."
+  type        = string
+}
+
+variable "postgres_network_name" {
+  description = "Имя Docker-сети PostgreSQL из внешнего модуля."
+  type        = string
+}
+
+# ---- Section: Airflow settings ----
+variable "airflow_enabled" {
+  description = "Флаг для включения поддержки Airflow в PostgreSQL."
+  type        = bool
+  default     = false
+}
+
+variable "airflow_pg_user" {
+  description = "Имя пользователя PostgreSQL для Airflow."
+  type        = string
+  default     = "airflow"
+}
+
+variable "airflow_pg_password" {
+  description = "Пароль пользователя PostgreSQL для Airflow."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_pg_db" {
+  description = "Имя базы данных PostgreSQL для Airflow."
+  type        = string
+  default     = "airflow"
 }

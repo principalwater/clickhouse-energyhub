@@ -21,102 +21,22 @@ terraform {
 
 ######################################################################
 # --- Section: Docker Network ---
+# Используем сеть из модуля postgres
 ######################################################################
-resource "docker_network" "metanet1" {
-  count  = local.any_bi_tool_enabled ? 1 : 0
-  name   = "metanet1"
-  driver = "bridge"
-}
 
 ######################################################################
-# --- Section: Postgres - image, container, init_db, restore_if_empty ---
+# --- Section: PostgreSQL connection from external module ---
+# Используем PostgreSQL из модуля postgres вместо создания собственного
 ######################################################################
-resource "docker_image" "postgres" {
-  count = local.any_bi_tool_enabled ? 1 : 0
-  name  = "postgres:${var.postgres_version}"
-}
-
-resource "docker_container" "postgres" {
-  count    = local.any_bi_tool_enabled ? 1 : 0
-  name     = "postgres"
-  image    = docker_image.postgres[0].name
-  hostname = "postgres"
-  networks_advanced {
-    name    = docker_network.metanet1[0].name
-    aliases = ["postgres"]
-  }
-  env = [
-    "POSTGRES_USER=postgres",
-    "POSTGRES_PASSWORD=${local.effective_postgres_superuser_password}"
-  ]
-  restart = "unless-stopped"
-  volumes {
-    host_path      = abspath(var.bi_postgres_data_path)
-    container_path = "/var/lib/postgresql/data"
-  }
-  healthcheck {
-    test     = ["CMD-SHELL", "pg_isready -U postgres"]
-    interval = "10s"
-    timeout  = "5s"
-    retries  = 5
-  }
-}
 ######################################################################
-# --- Section: Postgres - Metabase DB/user initialization (one-time if pgdata directory is empty) ---
-# Creates Metabase user and database if data directory is empty.
+# --- Section: PostgreSQL initialization from external module ---
+# Базы данных и пользователи создаются в модуле postgres
 ######################################################################
-resource "null_resource" "init_metabase_db" {
-  count = local.metabase_enabled ? 1 : 0
-  provisioner "local-exec" {
-    command     = <<EOT
-      # Wait for Postgres readiness (up to 60 sec)
-      for i in {1..30}; do
-        docker exec -i postgres pg_isready -U postgres && break || sleep 2
-      done
-      # Check if user exists
-      USER_EXISTS=$(docker exec -i postgres psql -U postgres -d postgres -tc "SELECT 1 FROM pg_roles WHERE rolname = '${var.metabase_pg_user}'" | grep -q 1 && echo yes || echo no)
-      if [ "$USER_EXISTS" = "no" ]; then
-        echo "Creating Metabase user: ${var.metabase_pg_user}"
-        docker exec -i postgres psql -U postgres -d postgres -c "CREATE USER ${var.metabase_pg_user} WITH PASSWORD '${local.effective_metabase_pg_password}';"
-      else
-        echo "Updating password for Metabase user: ${var.metabase_pg_user}"
-        docker exec -i postgres psql -U postgres -d postgres -c "ALTER USER ${var.metabase_pg_user} WITH PASSWORD '${local.effective_metabase_pg_password}';"
-      fi
-      # Check if Metabase DB exists
-      DB_EXISTS=$(docker exec -i postgres psql -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '${var.metabase_pg_db}'" | grep -q 1 && echo yes || echo no)
-      if [ "$DB_EXISTS" = "no" ]; then
-        echo "Creating Metabase database: ${var.metabase_pg_db}"
-        docker exec -i postgres createdb -U postgres ${var.metabase_pg_db}
-      fi
-      # Grant CREATE and USAGE on schema public in metabase DB to metabase user
-      echo "Granting CREATE, USAGE on schema public to ${var.metabase_pg_user} in ${var.metabase_pg_db}"
-      docker exec -i postgres psql -U postgres -d ${var.metabase_pg_db} -c "GRANT CREATE, USAGE ON SCHEMA public TO ${var.metabase_pg_user};"
-      docker exec -i postgres psql -U postgres -d ${var.metabase_pg_db} -c "GRANT CREATE ON DATABASE ${var.metabase_pg_db} TO ${var.metabase_pg_user};"
-    EOT
-    interpreter = ["/bin/bash", "-c"]
-  }
-  depends_on = [docker_container.postgres[0]]
-}
 
 ######################################################################
-# --- Section: Postgres - Restore/init DB if data directory is empty ---
-# Demonstrates logic for restoring from backup if directory is empty.
+# --- Section: PostgreSQL restore handled by external module ---
+# Восстановление и инициализация обрабатываются в модуле postgres
 ######################################################################
-resource "null_resource" "postgres_restore_if_empty" {
-  count = local.any_bi_tool_enabled && local.postgres_restore_enabled ? 1 : 0
-  provisioner "local-exec" {
-    command     = <<EOT
-if [ -z "$(ls -A "${abspath(var.bi_postgres_data_path)}" 2>/dev/null)" ]; then
-  echo "Postgres data dir empty. Restore needed."
-  # Здесь должна быть команда восстановления из backup (например, pg_restore ...), требует дополнительного задания.
-else
-  echo "Postgres data dir not empty. Skipping restore."
-fi
-EOT
-    interpreter = ["/bin/bash", "-c"]
-  }
-  depends_on = [docker_container.postgres[0]]
-}
 
 ######################################################################
 # --- Section: Metabase - image, container, api_init ---
@@ -141,7 +61,7 @@ resource "docker_container" "metabase" {
     read_only      = true
   }
   networks_advanced {
-    name    = docker_network.metanet1[0].name
+    name    = var.postgres_network_name
     aliases = ["metabase"]
   }
   env = [
@@ -149,14 +69,12 @@ resource "docker_container" "metabase" {
     "MB_DB_DBNAME=${var.metabase_pg_db}",
     "MB_DB_PORT=5432",
     "MB_DB_USER=${var.metabase_pg_user}",
-    "MB_DB_PASS=${local.effective_metabase_pg_password}",
+    "MB_DB_PASS=${var.metabase_pg_password}",
     "MB_DB_HOST=postgres"
   ]
   restart = "unless-stopped"
   depends_on = [
-    docker_container.postgres[0],
-    null_resource.postgres_restore_if_empty,
-    null_resource.init_metabase_db[0]
+    # PostgreSQL управляется внешним модулем postgres
   ]
   healthcheck {
     test     = ["CMD-SHELL", "curl --fail -I http://localhost:3000/api/health || exit 1"]
@@ -343,43 +261,9 @@ resource "local_file" "superset_config" {
 }
 
 ######################################################################
-# --- Section: Superset DB init in Postgres ---
-# Creates Superset role and database in Postgres.
+# --- Section: Superset DB init handled by external module ---
+# База данных и пользователь Superset создаются в модуле postgres
 ######################################################################
-resource "null_resource" "init_superset_db" {
-  count = local.superset_enabled ? 1 : 0
-  provisioner "local-exec" {
-    command     = <<EOT
-      for i in {1..30}; do
-        docker exec -i postgres pg_isready -U postgres && break || sleep 3
-      done
-
-      # Create superset role if it does not exist (as admin)
-      ROLE_EXISTS=$(docker exec -i postgres psql -U postgres -d postgres -tc "SELECT 1 FROM pg_roles WHERE rolname = '${var.superset_pg_user}'" | grep -q 1 && echo yes || echo no)
-      if [ "$ROLE_EXISTS" = "no" ]; then
-        echo "Creating Superset user: ${var.superset_pg_user}"
-        docker exec -i postgres psql -U postgres -d postgres -c "CREATE USER ${var.superset_pg_user} WITH PASSWORD '${local.effective_superset_pg_password}';"
-      else
-        echo "Superset user ${var.superset_pg_user} already exists, skipping creation"
-      fi
-
-      # Create superset database if it does not exist (as admin)
-      DB_EXISTS=$(docker exec -i postgres psql -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '${var.superset_pg_db}'" | grep -q 1 && echo yes || echo no)
-      if [ "$DB_EXISTS" = "no" ]; then
-        echo "Creating Superset database: ${var.superset_pg_db}"
-        docker exec -i postgres createdb -U postgres ${var.superset_pg_db}
-      else
-        echo "Superset database ${var.superset_pg_db} already exists, skipping creation"
-      fi
-
-      # Grant all privileges on database to superset user
-      echo "Granting all privileges on ${var.superset_pg_db} to ${var.superset_pg_user}"
-      docker exec -i postgres psql -U postgres -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE ${var.superset_pg_db} TO ${var.superset_pg_user};"
-    EOT
-    interpreter = ["/bin/bash", "-c"]
-  }
-  depends_on = [docker_container.postgres[0]]
-}
 
 ######################################################################
 # --- Section: Superset image ---
@@ -402,12 +286,12 @@ resource "docker_container" "superset" {
     external = var.superset_port
   }
   networks_advanced {
-    name    = docker_network.metanet1[0].name
+    name    = var.postgres_network_name
     aliases = ["superset"]
   }
   env = [
     "SUPERSET_ENV=production",
-    "SUPERSET_DATABASE_URI=postgresql+psycopg2://${var.superset_pg_user}:${local.effective_superset_pg_password}@postgres:5432/${var.superset_pg_db}",
+    "SUPERSET_DATABASE_URI=postgresql+psycopg2://${var.superset_pg_user}:${var.superset_pg_password}@postgres:5432/${var.superset_pg_db}",
     "SECRET_KEY=${var.superset_secret_key}",
     "PYTHONPATH=/app/pythonpath"
   ]
@@ -418,8 +302,7 @@ resource "docker_container" "superset" {
   }
   restart = "unless-stopped"
   depends_on = [
-    docker_container.postgres[0],
-    null_resource.init_superset_db[0],
+    # PostgreSQL управляется внешним модулем postgres
     local_file.superset_config[0]
   ]
   healthcheck {
@@ -564,3 +447,9 @@ EOT
   }
   depends_on = [docker_container.superset[0]]
 }
+
+######################################################################
+# --- Section: Airflow PostgreSQL user initialization ---
+# Creates Airflow user and database if Airflow is enabled.
+######################################################################
+# База данных и пользователь Airflow создаются в модуле postgres

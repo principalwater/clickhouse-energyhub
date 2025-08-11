@@ -49,7 +49,7 @@ cd clickhouse-energyhub
 
 ## Шаг 3: Настройка переменных для новых модулей
 
-В файле `terraform.tfvars` убедитесь, что заполнены все необходимые переменные для модулей Kafka и Monitoring:
+В файле `terraform.tfvars` убедитесь, что заполнены все необходимые переменные для модулей Kafka, Monitoring и Airflow:
 
 ```hcl
 # Kafka Configuration
@@ -64,9 +64,18 @@ topic_5min                 = "energy_data_5min"
 portainer_version    = "2.19.4"
 portainer_https_port = 9443
 portainer_agent_port = 9000
+
+# Airflow Configuration (опционально)
+# deploy_airflow = true
+# airflow_postgres_password = "YOUR_AIRFLOW_POSTGRES_PASSWORD"
+# airflow_admin_password = "YOUR_AIRFLOW_ADMIN_PASSWORD"
+# airflow_fernet_key = "YOUR_FERNET_KEY" # Сгенерируйте командой: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# airflow_webserver_secret_key = "YOUR_AIRFLOW_SECRET_KEY" # Сгенерируйте командой: openssl rand -base64 32
 ```
 
-**Важно:** SSL-сертификаты для Kafka будут сгенерированы автоматически во время выполнения `terraform apply` с использованием скрипта `scripts/generate_certs.sh`. Убедитесь, что пароль `kafka_ssl_keystore_password` надежный и соответствует вашим требованиям безопасности.
+**Важно:** 
+- SSL-сертификаты для Kafka будут сгенерированы автоматически во время выполнения `terraform apply` с использованием скрипта `scripts/generate_certs.sh`. Убедитесь, что пароль `kafka_ssl_keystore_password` надежный и соответствует вашим требованиям безопасности.
+- Для Airflow необходимо сгенерировать уникальные ключи шифрования. Используйте команды из комментариев выше.
 
 ## Шаг 4: Развертывание инфраструктуры
 
@@ -95,8 +104,12 @@ portainer_agent_port = 9000
 | **Metabase** | http://localhost:3000 |
 | **Superset** | http://localhost:8088 |
 | **Kafka** | `localhost:9092` (адрес брокера) |
+| **Airflow** | http://localhost:8080 (если включен) |
+| **Airflow Flower** | http://localhost:5555 (если включен) |
 
 Для входа в Metabase и Superset используйте учетные данные администратора, которые вы указали в `terraform.tfvars` (`sa_username` и `sa_password`).
+
+Для входа в Airflow используйте учетные данные администратора, которые вы указали в `terraform.tfvars` (`airflow_admin_user` и `airflow_admin_password`).
 
 ## Шаг 6: Запуск генерации данных
 
@@ -132,3 +145,4 @@ portainer_agent_port = 9000
 - [**Инфраструктура BI**](./infra/terraform/modules/bi-infra/README.md)
 - [**Apache Kafka**](./infra/terraform/modules/kafka/README.md)
 - [**Мониторинг (Portainer)**](./infra/terraform/modules/monitoring/README.md)
+- [**Apache Airflow**](./infra/terraform/modules/airflow/README.md)
