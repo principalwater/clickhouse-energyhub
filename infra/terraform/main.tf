@@ -151,3 +151,29 @@ module "bi_infra" {
 
   depends_on = [module.clickhouse_cluster]
 }
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  portainer_version    = var.portainer_version
+  portainer_https_port = var.portainer_https_port
+  portainer_agent_port = var.portainer_agent_port
+
+  depends_on = [module.clickhouse_cluster]
+}
+
+module "kafka" {
+  source = "./modules/kafka"
+
+  kafka_version               = var.kafka_version
+  docker_network_name         = module.clickhouse_cluster.network_name
+  topic_1min                  = var.topic_1min
+  topic_5min                  = var.topic_5min
+  kafka_admin_user            = var.kafka_admin_user
+  kafka_admin_password        = var.kafka_admin_password
+  kafka_ssl_keystore_password = var.kafka_ssl_keystore_password
+  secrets_path                = abspath("../secrets")
+  enable_kafka_acl            = false
+
+  depends_on = [module.clickhouse_cluster]
+}

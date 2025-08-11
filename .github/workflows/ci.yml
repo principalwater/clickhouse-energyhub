@@ -26,6 +26,9 @@ jobs:
       PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
       SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
       SUPERSET_SECRET_KEY: ${{ secrets.SUPERSET_SECRET_KEY }}
+      # Kafka Secrets
+      KAFKA_ADMIN_PASSWORD: ${{ secrets.KAFKA_ADMIN_PASSWORD }}
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${{ secrets.KAFKA_SSL_KEYSTORE_PASSWORD }}
       # Set storage_type at the job level to make it available for the 'if' condition in steps
       storage_type: local_storage
     steps:

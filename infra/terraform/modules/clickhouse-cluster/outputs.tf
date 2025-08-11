@@ -32,3 +32,8 @@ output "keeper_nodes_info" {
     tcp_port = node.tcp_port
   } }
 }
+
+output "network_name" {
+  description = "The name of the Docker network created for the cluster."
+  value       = docker_network.ch_net.name
+}

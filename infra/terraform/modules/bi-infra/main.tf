@@ -339,7 +339,7 @@ resource "local_file" "superset_config" {
   content = templatefile("${path.module}/samples/superset/superset_config.py.tmpl", {
     superset_secret_key = var.superset_secret_key
   })
-  filename = abspath("${path.module}/superset_config.py")
+  filename = "${path.root}/../env/superset_config.py"
 }
 
 ######################################################################
@@ -412,7 +412,7 @@ resource "docker_container" "superset" {
     "PYTHONPATH=/app/pythonpath"
   ]
   volumes {
-    host_path      = local_file.superset_config[0].filename
+    host_path      = abspath(local_file.superset_config[0].filename)
     container_path = "/app/pythonpath/superset_config.py"
     read_only      = true
   }
