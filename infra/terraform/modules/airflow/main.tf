@@ -309,11 +309,14 @@ resource "docker_container" "airflow_scheduler" {
   }
   
   healthcheck {
-    test = ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+    test = [
+      "CMD-SHELL", 
+      "airflow jobs check --job-type SchedulerJob --hostname \"$$HOSTNAME\" || exit 1"
+    ]
     interval = "30s"
     timeout  = "10s"
     retries  = 5
-    start_period = "30s"
+    start_period = "60s"
   }
   
   restart = "always"
@@ -363,12 +366,12 @@ resource "docker_container" "airflow_worker" {
   healthcheck {
     test = [
       "CMD-SHELL",
-      "celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d celery@$$HOSTNAME || celery --app airflow.executors.celery_executor.app inspect ping -d celery@$$HOSTNAME"
+      "celery -A airflow.providers.celery.executors.celery_executor.app inspect ping -d celery@$$HOSTNAME -t 10 || exit 1"
     ]
     interval = "30s"
-    timeout  = "10s"
+    timeout  = "15s"
     retries  = 5
-    start_period = "30s"
+    start_period = "60s"
   }
   
   restart = "always"
@@ -408,11 +411,14 @@ resource "docker_container" "airflow_triggerer" {
   }
   
   healthcheck {
-    test = ["CMD-SHELL", "airflow jobs check --job-type TriggererJob --hostname \"$$HOSTNAME\""]
+    test = [
+      "CMD-SHELL",
+      "pgrep -f 'airflow triggerer' || exit 1"
+    ]
     interval = "30s"
     timeout  = "10s"
     retries  = 5
-    start_period = "30s"
+    start_period = "60s"
   }
   
   restart = "always"
@@ -452,11 +458,14 @@ resource "docker_container" "airflow_dag_processor" {
   }
   
   healthcheck {
-    test = ["CMD-SHELL", "airflow jobs check --job-type DagProcessorJob --hostname \"$$HOSTNAME\""]
+    test = [
+      "CMD-SHELL", 
+      "pgrep -f 'airflow dag-processor' || exit 1"
+    ]
     interval = "30s"
     timeout  = "10s"
     retries  = 5
-    start_period = "30s"
+    start_period = "60s"
   }
   
   restart = "always"
