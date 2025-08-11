@@ -27,3 +27,28 @@ output "superset_db_creds" {
   }
   sensitive = true
 }
+
+output "postgres_container_name" {
+  description = "Имя контейнера PostgreSQL из внешнего модуля."
+  value       = var.postgres_container_name
+}
+
+output "postgres_network_name" {
+  description = "Имя Docker-сети PostgreSQL из внешнего модуля."
+  value       = var.postgres_network_name
+}
+
+output "postgres_host" {
+  description = "Хост PostgreSQL для подключения."
+  value       = "postgres"
+}
+
+output "postgres_port" {
+  description = "Порт PostgreSQL."
+  value       = 5432
+}
+
+output "postgres_superuser" {
+  description = "Имя суперпользователя PostgreSQL."
+  value       = "postgres"
+}

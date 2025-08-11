@@ -361,3 +361,112 @@ variable "portainer_agent_port" {
   type        = number
   default     = 10010
 }
+
+# --------------------------------------------------------------------------------------------------
+# Airflow Variables
+# --------------------------------------------------------------------------------------------------
+
+variable "deploy_airflow" {
+  description = "Развернуть Apache Airflow."
+  type        = bool
+  default     = false
+}
+
+variable "airflow_version" {
+  description = "Версия Docker-образа Apache Airflow."
+  type        = string
+  default     = "2.8.1"
+}
+
+
+
+variable "redis_version" {
+  description = "Версия Docker-образа Redis для Celery брокера."
+  type        = string
+  default     = "7.2-alpine"
+}
+
+variable "airflow_webserver_port" {
+  description = "Порт для веб-интерфейса Airflow на хосте."
+  type        = number
+  default     = 8080
+}
+
+variable "airflow_flower_port" {
+  description = "Порт для мониторинга Celery Flower на хосте."
+  type        = number
+  default     = 5555
+}
+
+variable "airflow_postgres_user" {
+  description = "Имя пользователя PostgreSQL для Airflow."
+  type        = string
+  default     = "airflow"
+}
+
+variable "airflow_postgres_db" {
+  description = "Имя базы данных PostgreSQL для Airflow."
+  type        = string
+  default     = "airflow"
+}
+variable "airflow_postgres_password" {
+  description = "Пароль PostgreSQL для пользователя Airflow."
+  type        = string
+  sensitive   = true
+}
+
+
+
+variable "airflow_redis_data_path" {
+  description = "Путь к директории с данными Redis для Airflow."
+  type        = string
+  default     = "../../volumes/airflow/redis"
+}
+
+variable "airflow_admin_user" {
+  description = "Имя пользователя-администратора Airflow."
+  type        = string
+  default     = "admin"
+}
+
+variable "airflow_admin_password" {
+  description = "Пароль пользователя-администратора Airflow."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_fernet_key" {
+  description = "Fernet ключ для шифрования в Airflow."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_webserver_secret_key" {
+  description = "Секретный ключ для веб-сервера Airflow."
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_dags_path" {
+  description = "Путь к директории с DAG файлами Airflow."
+  type        = string
+  default     = "../../volumes/airflow/dags"
+}
+
+variable "airflow_logs_path" {
+  description = "Путь к директории с логами Airflow."
+  type        = string
+  default     = "../../volumes/airflow/logs"
+}
+
+variable "airflow_plugins_path" {
+  description = "Путь к директории с плагинами Airflow."
+  type        = string
+  default     = "../../volumes/airflow/plugins"
+}
+
+variable "airflow_config_path" {
+  description = "Путь к директории с конфигурацией Airflow."
+  type        = string
+  default     = "../../volumes/airflow/config"
+}
