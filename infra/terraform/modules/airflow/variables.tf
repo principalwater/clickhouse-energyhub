@@ -44,6 +44,11 @@ variable "airflow_postgres_connection_string" {
   sensitive   = true
 }
 
+variable "postgres_network_name" {
+  description = "Имя Docker-сети PostgreSQL для подключения к базе данных."
+  type        = string
+}
+
 # ---- Section: Redis настройки ----
 variable "airflow_redis_data_path" {
   description = "Путь к директории с данными Redis для Airflow."

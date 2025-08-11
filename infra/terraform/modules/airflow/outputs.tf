@@ -18,13 +18,13 @@ output "airflow_network_name" {
 }
 
 output "airflow_postgres_container_name" {
-  description = "Имя контейнера PostgreSQL для Airflow."
-  value       = var.deploy_airflow ? docker_container.airflow_postgres[0].name : null
+  description = "Имя контейнера PostgreSQL для Airflow (управляется внешним модулем postgres)."
+  value       = null
 }
 
 output "airflow_redis_container_name" {
   description = "Имя контейнера Redis для Airflow."
-  value       = var.deploy_airflow ? docker_container.airflow_redis[0].name : null
+  value       = var.deploy_airflow ? docker_container.redis[0].name : null
 }
 
 output "airflow_webserver_container_name" {
@@ -53,8 +53,8 @@ output "airflow_admin_user" {
 }
 
 output "airflow_postgres_connection_string" {
-  description = "Строка подключения к PostgreSQL для Airflow."
-  value       = var.deploy_airflow ? "postgresql://${var.airflow_postgres_user}:${var.airflow_postgres_password}@airflow_postgres:5432/${var.airflow_postgres_db}" : null
+  description = "Строка подключения к PostgreSQL для Airflow (передается из внешнего модуля postgres)."
+  value       = var.deploy_airflow ? var.airflow_postgres_connection_string : null
   sensitive   = true
 }
 

@@ -77,6 +77,10 @@ resource "docker_container" "airflow_webserver" {
     name    = var.kafka_network_name
     aliases = ["airflow_webserver_kafka"]
   }
+  networks_advanced {
+    name    = var.postgres_network_name
+    aliases = ["airflow_webserver_postgres"]
+  }
   ports {
     internal = 8080
     external = var.airflow_webserver_port
@@ -119,10 +123,10 @@ resource "docker_container" "airflow_webserver" {
     docker_container.redis[0]
   ]
   healthcheck {
-    test     = ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-    interval = "30s"
-    timeout  = "10s"
-    retries  = 5
+    test         = ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+    interval     = "30s"
+    timeout      = "10s"
+    retries      = 5
     start_period = "60s"
   }
 }
@@ -144,6 +148,10 @@ resource "docker_container" "airflow_scheduler" {
   networks_advanced {
     name    = var.kafka_network_name
     aliases = ["airflow_scheduler_kafka"]
+  }
+  networks_advanced {
+    name    = var.postgres_network_name
+    aliases = ["airflow_scheduler_postgres"]
   }
   command = ["scheduler"]
   env = [
@@ -201,6 +209,10 @@ resource "docker_container" "airflow_worker" {
   networks_advanced {
     name    = var.kafka_network_name
     aliases = ["airflow_worker_kafka"]
+  }
+  networks_advanced {
+    name    = var.postgres_network_name
+    aliases = ["airflow_worker_postgres"]
   }
   command = ["celery", "worker"]
   env = [
@@ -269,9 +281,9 @@ resource "docker_container" "airflow_flower" {
 # --- Airflow Init ---
 resource "null_resource" "airflow_init" {
   count = var.deploy_airflow ? 1 : 0
-  
+
   provisioner "local-exec" {
-    command = <<EOT
+    command     = <<EOT
       echo "=== Инициализация Airflow ==="
       
       # Ожидание готовности PostgreSQL
@@ -335,15 +347,15 @@ resource "null_resource" "airflow_init" {
     EOT
     interpreter = ["/bin/bash", "-c"]
   }
-  
+
   depends_on = [
     docker_container.airflow_webserver[0],
     # PostgreSQL управляется внешним модулем postgres
     docker_container.redis[0]
   ]
-  
+
   triggers = {
-    admin_creds = "${var.airflow_admin_user}-${var.airflow_admin_password}"
+    admin_creds      = "${var.airflow_admin_user}-${var.airflow_admin_password}"
     clickhouse_creds = "${var.clickhouse_bi_user}-${var.clickhouse_bi_password}"
   }
 }
@@ -414,7 +426,7 @@ clickhouse_task = PythonOperator(
 process_task >> kafka_task >> clickhouse_task
 EOT
   filename = "${var.airflow_dags_path}/clickhouse_kafka_integration.py"
-  
+
   depends_on = [null_resource.airflow_init]
 }
 
@@ -445,6 +457,6 @@ KAFKA_TOPIC_1MIN=${var.kafka_topic_1min}
 KAFKA_TOPIC_5MIN=${var.kafka_topic_5min}
 EOT
   filename = "${var.airflow_config_path}/airflow.env"
-  
+
   depends_on = [null_resource.airflow_init]
 }

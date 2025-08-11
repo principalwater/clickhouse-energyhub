@@ -42,5 +42,5 @@ output "secrets_path" {
 
 output "network_name" {
   description = "Имя Docker-сети Kafka."
-  value       = docker_network.kafka_network.name
+  value       = var.docker_network_name
 }

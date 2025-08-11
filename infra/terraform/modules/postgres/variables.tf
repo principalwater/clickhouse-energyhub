@@ -27,6 +27,12 @@ variable "postgres_superuser_password" {
   sensitive   = true
 }
 
+variable "pg_password" {
+  description = "Общий пароль PostgreSQL, используемый как fallback для всех пользователей."
+  type        = string
+  sensitive   = true
+}
+
 variable "postgres_restore_enabled" {
   description = "Включить восстановление/инициализацию PostgreSQL."
   type        = bool

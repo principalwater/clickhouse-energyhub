@@ -103,6 +103,7 @@ module "postgres" {
   postgres_version = var.postgres_version
   postgres_data_path = var.bi_postgres_data_path
   postgres_superuser_password = var.pg_password
+  pg_password = var.pg_password
   postgres_restore_enabled = var.postgres_restore_enabled
 
   # Флаги сервисов
@@ -186,6 +187,18 @@ module "bi_infra" {
   # PostgreSQL superuser password
   postgres_superuser_password = var.pg_password
 
+  # Postgres restore enable flag
+  postgres_restore_enabled = var.postgres_restore_enabled
+
+  # Airflow settings (для поддержки в PostgreSQL)
+  airflow_enabled = var.deploy_airflow
+  airflow_pg_user = var.airflow_postgres_user
+  airflow_pg_password = var.airflow_postgres_password
+  airflow_pg_db = var.airflow_postgres_db
+
+  # Fallback passwords for local logic (используем те же переменные, что и выше)
+  # metabase_pg_password и superset_pg_password уже переданы выше как var.pg_password
+
   depends_on = [module.clickhouse_cluster, module.postgres]
 }
 
@@ -231,6 +244,7 @@ module "airflow" {
 
   # PostgreSQL (используем модуль postgres)
   airflow_postgres_connection_string = module.postgres.airflow_db_connection_string
+  postgres_network_name = module.postgres.postgres_network_name
 
   # Redis
   airflow_redis_data_path = var.airflow_redis_data_path

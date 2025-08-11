@@ -29,18 +29,18 @@ output "superset_db_creds" {
 }
 
 output "postgres_container_name" {
-  description = "Имя контейнера PostgreSQL."
-  value       = local.any_bi_tool_enabled ? docker_container.postgres[0].name : null
+  description = "Имя контейнера PostgreSQL из внешнего модуля."
+  value       = var.postgres_container_name
 }
 
 output "postgres_network_name" {
-  description = "Имя Docker-сети PostgreSQL."
-  value       = local.any_bi_tool_enabled ? docker_network.metanet1[0].name : null
+  description = "Имя Docker-сети PostgreSQL из внешнего модуля."
+  value       = var.postgres_network_name
 }
 
 output "postgres_host" {
   description = "Хост PostgreSQL для подключения."
-  value       = local.any_bi_tool_enabled ? "postgres" : null
+  value       = "postgres"
 }
 
 output "postgres_port" {

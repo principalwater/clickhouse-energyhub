@@ -69,12 +69,13 @@ resource "docker_container" "metabase" {
     "MB_DB_DBNAME=${var.metabase_pg_db}",
     "MB_DB_PORT=5432",
     "MB_DB_USER=${var.metabase_pg_user}",
-    "MB_DB_PASS=${var.metabase_pg_password}",
+    "MB_DB_PASS=${local.effective_metabase_pg_password}",
     "MB_DB_HOST=postgres"
   ]
   restart = "unless-stopped"
   depends_on = [
     # PostgreSQL управляется внешним модулем postgres
+    # Зависимость от модуля postgres обеспечивается на уровне корневого main.tf
   ]
   healthcheck {
     test     = ["CMD-SHELL", "curl --fail -I http://localhost:3000/api/health || exit 1"]
@@ -291,7 +292,7 @@ resource "docker_container" "superset" {
   }
   env = [
     "SUPERSET_ENV=production",
-    "SUPERSET_DATABASE_URI=postgresql+psycopg2://${var.superset_pg_user}:${var.superset_pg_password}@postgres:5432/${var.superset_pg_db}",
+    "SUPERSET_DATABASE_URI=postgresql+psycopg2://${var.superset_pg_user}:${local.effective_superset_pg_password}@postgres:5432/${var.superset_pg_db}",
     "SECRET_KEY=${var.superset_secret_key}",
     "PYTHONPATH=/app/pythonpath"
   ]

@@ -179,6 +179,12 @@ variable "postgres_superuser_password" {
   sensitive   = true
 }
 
+variable "postgres_restore_enabled" {
+  description = "Включить восстановление/инициализацию данных Postgres, если директория pgdata пуста."
+  type        = bool
+  default     = true
+}
+
 # ---- Section: PostgreSQL connection from external module ----
 variable "postgres_container_name" {
   description = "Имя контейнера PostgreSQL из внешнего модуля."
