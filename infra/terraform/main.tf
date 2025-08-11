@@ -173,6 +173,7 @@ module "kafka" {
   kafka_admin_password        = var.kafka_admin_password
   kafka_ssl_keystore_password = var.kafka_ssl_keystore_password
   secrets_path                = abspath("../secrets")
+  enable_kafka_acl            = false
 
   depends_on = [module.clickhouse_cluster]
 }

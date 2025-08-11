@@ -27,7 +27,7 @@ resource "docker_container" "portainer" {
     internal = 9000
     external = var.portainer_agent_port
   }
-  
+
   ports {
     internal = 9443
     external = var.portainer_https_port

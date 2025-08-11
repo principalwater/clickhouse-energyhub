@@ -39,3 +39,9 @@ variable "secrets_path" {
   description = "Абсолютный путь к директории с секретами для Kafka."
   type        = string
 }
+
+variable "enable_kafka_acl" {
+  description = "Включить ACL авторизацию в Kafka"
+  type        = bool
+  default     = false
+}
