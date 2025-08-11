@@ -94,3 +94,60 @@ module "clickhouse_cluster" {
   bucket_storage          = var.bucket_storage
   local_backup_minio_port = var.local_backup_minio_port
 }
+
+module "bi_infra" {
+  source = "./modules/bi-infra"
+
+  # Flags to enable/disable BI tools
+  deploy_metabase = var.deploy_metabase
+  deploy_superset = var.deploy_superset
+
+  # Versions
+  postgres_version = var.postgres_version
+  metabase_version = var.metabase_version
+  superset_version = var.superset_version
+
+  # Ports
+  metabase_port = var.metabase_port
+  superset_port = var.superset_port
+
+  # Passwords and Secrets
+  pg_password         = var.pg_password
+  sa_password         = var.sa_password
+  superset_secret_key = var.superset_secret_key
+  bi_password         = var.bi_user_password # Use the main CH BI user password
+
+  # Usernames
+  sa_username = var.sa_username
+  bi_user     = var.bi_user_name # Use the main CH BI username
+
+  # Postgres settings
+  postgres_restore_enabled = var.postgres_restore_enabled
+  metabase_pg_user         = var.metabase_pg_user
+  superset_pg_user         = var.superset_pg_user
+  metabase_pg_db           = var.metabase_pg_db
+  superset_pg_db           = var.superset_pg_db
+
+  # Metabase settings
+  metabase_site_name    = var.metabase_site_name
+  bi_postgres_data_path = var.bi_postgres_data_path
+
+  # User lists (defaults to empty list)
+  metabase_local_users = var.metabase_local_users
+  superset_local_users = var.superset_local_users
+
+  # Explicitly set to null to use fallback logic in the module for other vars
+  metabase_pg_password        = null
+  superset_pg_password        = null
+  metabase_sa_username        = null
+  metabase_sa_password        = null
+  metabase_bi_username        = null
+  metabase_bi_password        = null
+  superset_sa_username        = null
+  superset_sa_password        = null
+  superset_bi_username        = null
+  superset_bi_password        = null
+  postgres_superuser_password = null
+
+  depends_on = [module.clickhouse_cluster]
+}
