@@ -15,22 +15,22 @@
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│      RAW        │    │      ODS        │    │      DDS        │   │   DATA MARTS    │
-│                 │    │                 │    │                 │   │                 │
-│ • Kafka data    │───▶│ • Preprocessing │───▶│ • Business      │──▶│ • Aggregated    │
-│ • As-is format  │    │ • DQ checks     │    │   logic         │   │ • BI ready      │
-│ • No changes    │    │ • Data cleaning │    │ • Detailed      │   │ • KPIs          │
-│ • View          │    │ • View          │    │ • Table         │   │ • Table         │
-└─────────────────┘    └─────────────────┘    └─────────────────┘   └─────────────────┘
+│      RAW        │    │      ODS        │    │      DDS        │    │   DATA MARTS    │
+│                 │    │                 │    │                 │    │                 │
+│ • Kafka data    │───▶│ • Preprocessing │───▶│ • Business      │───▶│ • Aggregated    │
+│ • As-is format  │    │ • DQ checks     │    │   logic         │    │ • BI ready      │
+│ • No changes    │    │ • Data cleaning │    │ • Detailed      │    │ • KPIs          │
+│ • View          │    │ • View          │    │ • Table         │    │ • Table         │
+└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
                                     │
                                     ▼
                     ┌─────────────────────────────────────┐
                     │      ClickHouse Cluster dwh_prod    │
                     │                                     │
-                    │  ┌─────────────┐  ┌─────────────┐  │
-                    │  │   Shard 1   │  │   Shard 2   │  │
-                    │  │ Replica 1,2 │  │ Replica 1,2 │  │
-                    │  └─────────────┘  └─────────────┘  │
+                    │  ┌─────────────┐  ┌─────────────┐   │
+                    │  │   Shard 1   │  │   Shard 2   │   │
+                    │  │ Replica 1,2 │  │ Replica 1,2 │   │
+                    │  └─────────────┘  └─────────────┘   │
                     │                                     │
                     │  ┌─────────────────────────────┐    │
                     │  │     3x ClickHouse Keeper    │    │
