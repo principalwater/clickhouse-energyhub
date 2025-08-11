@@ -27,7 +27,7 @@ resource "null_resource" "generate_kafka_certs" {
 }
 
 resource "local_file" "kafka_jaas_config" {
-  content = <<-EOT
+  content  = <<-EOT
 KafkaServer {
   org.apache.kafka.common.security.scram.ScramLoginModule required
   username="${var.kafka_admin_user}"
@@ -102,7 +102,7 @@ resource "docker_container" "kafka" {
   env = [
     "KAFKA_BROKER_ID=1",
     "KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181",
-    
+
     # Ключевые переменные для preflight скриптов
     "KAFKA_ZOOKEEPER_SASL_ENABLED=false",
     "ZOOKEEPER_SASL_ENABLED=false",
@@ -187,7 +187,7 @@ resource "null_resource" "setup_kafka_users_and_topics" {
       echo "=== Настройка Kafka завершена успешно ==="
     EOT
   }
-  
+
   depends_on = [
     docker_container.kafka,
     local_file.kafka_client_properties
@@ -196,7 +196,7 @@ resource "null_resource" "setup_kafka_users_and_topics" {
   # Перезапускать при изменении конфигурации
   triggers = {
     kafka_config = "${var.kafka_admin_user}-${var.kafka_admin_password}"
-    topics = "${var.topic_1min}-${var.topic_5min}"
+    topics       = "${var.topic_1min}-${var.topic_5min}"
   }
 }
 
@@ -204,7 +204,7 @@ resource "null_resource" "setup_kafka_users_and_topics" {
 
 resource "null_resource" "enable_kafka_acl" {
   count = var.enable_kafka_acl ? 1 : 0
-  
+
   provisioner "local-exec" {
     command = <<EOT
       echo "=== Включение ACL авторизации ==="
@@ -217,28 +217,28 @@ resource "null_resource" "enable_kafka_acl" {
       echo "ACL авторизация включена"
     EOT
   }
-  
+
   depends_on = [null_resource.setup_kafka_users_and_topics]
 }
 
 # --- Client Properties файл ---
 
 resource "local_file" "kafka_client_properties" {
-  content = <<-EOT
+  content    = <<-EOT
 security.protocol=SASL_SSL
 ssl.truststore.location=/etc/kafka/secrets/kafka.truststore.jks
 ssl.truststore.password=${var.kafka_ssl_keystore_password}
 sasl.mechanism=SCRAM-SHA-256
 sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${var.kafka_admin_user}" password="${var.kafka_admin_password}";
 EOT
-  filename = "${var.secrets_path}/kafka_client.properties"
+  filename   = "${var.secrets_path}/kafka_client.properties"
   depends_on = [local_file.kafka_jaas_config]
 }
 
 # --- Environment файл ---
 
 resource "local_file" "kafka_env_file" {
-  content = <<-EOT
+  content    = <<-EOT
 # Kafka Credentials for client applications
 KAFKA_ADMIN_USER=${var.kafka_admin_user}
 KAFKA_ADMIN_PASSWORD=${var.kafka_admin_password}
@@ -246,6 +246,6 @@ KAFKA_SSL_KEYSTORE_PASSWORD=${var.kafka_ssl_keystore_password}
 KAFKA_BOOTSTRAP_SERVERS_PLAINTEXT=kafka:9092
 KAFKA_BOOTSTRAP_SERVERS_SASL_SSL=localhost:9093
 EOT
-  filename = "${var.secrets_path}/kafka.env"
+  filename   = "${var.secrets_path}/kafka.env"
   depends_on = [null_resource.setup_kafka_users_and_topics]
 }
