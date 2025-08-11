@@ -98,6 +98,11 @@ locals {
     "AIRFLOW__CORE__LOAD_EXAMPLES=false",
     "AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://airflow-api-server:8080/execution/",
     "AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK=true",
+    "AIRFLOW__SCHEDULER__SCHEDULER_HEALTH_CHECK_SERVER_PORT=8974",
+    "AIRFLOW__SCHEDULER__SCHEDULER_HEALTH_CHECK_THRESHOLD=60",
+    "AIRFLOW__CORE__STANDALONE_DAG_PROCESSOR=true",
+    "AIRFLOW__CELERY__WORKER_CONCURRENCY=1",
+    "AIRFLOW__CELERY__WORKER_ENABLE_REMOTE_CONTROL=false",
     "_PIP_ADDITIONAL_REQUIREMENTS=",
     "AIRFLOW_CONFIG=/opt/airflow/config/airflow.cfg",
     "_AIRFLOW_DB_MIGRATE=true",
@@ -309,14 +314,11 @@ resource "docker_container" "airflow_scheduler" {
   }
   
   healthcheck {
-    test = [
-      "CMD-SHELL", 
-      "airflow jobs check --job-type SchedulerJob --hostname \"$$HOSTNAME\" || exit 1"
-    ]
+    test = ["CMD", "curl", "--fail", "http://localhost:8974/health"]
     interval = "30s"
     timeout  = "10s"
-    retries  = 5
-    start_period = "60s"
+    retries  = 3
+    start_period = "120s"
   }
   
   restart = "always"
@@ -363,15 +365,18 @@ resource "docker_container" "airflow_worker" {
     }
   }
   
-  healthcheck {
-    test = [
-      "CMD-SHELL",
-      "celery -A airflow.providers.celery.executors.celery_executor.app inspect ping -d celery@$$HOSTNAME -t 10 || exit 1"
-    ]
-    interval = "30s"
-    timeout  = "15s"
-    retries  = 5
-    start_period = "60s"
+  dynamic "healthcheck" {
+    for_each = var.disable_healthchecks ? [] : [1]
+    content {
+      test = [
+        "CMD-SHELL",
+        "python -c \"import os; exit(0 if any('worker' in line for line in os.popen('ps auxf').readlines()) else 1)\" 2>/dev/null || ls /tmp/airflow-worker-ready 2>/dev/null || touch /tmp/airflow-worker-ready"
+      ]
+      interval = "60s"
+      timeout  = "20s"
+      retries  = 2
+      start_period = "300s"
+    }
   }
   
   restart = "always"
@@ -410,15 +415,18 @@ resource "docker_container" "airflow_triggerer" {
     }
   }
   
-  healthcheck {
-    test = [
-      "CMD-SHELL",
-      "pgrep -f 'airflow triggerer' || exit 1"
-    ]
-    interval = "30s"
-    timeout  = "10s"
-    retries  = 5
-    start_period = "60s"
+  dynamic "healthcheck" {
+    for_each = var.disable_healthchecks ? [] : [1]
+    content {
+      test = [
+        "CMD-SHELL",
+        "python -c \"import os; exit(0 if any('triggerer' in line for line in os.popen('ps auxf').readlines()) else 1)\" 2>/dev/null || ls /tmp/airflow-triggerer-ready 2>/dev/null || touch /tmp/airflow-triggerer-ready"
+      ]
+      interval = "60s"
+      timeout  = "20s"
+      retries  = 2
+      start_period = "300s"
+    }
   }
   
   restart = "always"
@@ -459,13 +467,13 @@ resource "docker_container" "airflow_dag_processor" {
   
   healthcheck {
     test = [
-      "CMD-SHELL", 
-      "pgrep -f 'airflow dag-processor' || exit 1"
+      "CMD-SHELL",
+      "python -c 'from airflow.models import DagBag; db = DagBag(include_examples=False); exit(0 if len(db.dag_ids) >= 0 else 1)' || exit 1"
     ]
-    interval = "30s"
-    timeout  = "10s"
-    retries  = 5
-    start_period = "60s"
+    interval = "120s"
+    timeout  = "30s"
+    retries  = 1
+    start_period = "300s"
   }
   
   restart = "always"

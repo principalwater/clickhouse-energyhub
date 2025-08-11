@@ -144,3 +144,9 @@ variable "enable_flower" {
   type        = bool
   default     = false
 }
+
+variable "disable_healthchecks" {
+  description = "Отключить Docker healthcheck'и для проблемных контейнеров (worker, triggerer)"
+  type        = bool
+  default     = false
+}

@@ -236,8 +236,9 @@ module "airflow" {
   }
 
   # Основные настройки
-  deploy_airflow = var.deploy_airflow
-  enable_flower  = false
+  deploy_airflow       = var.deploy_airflow
+  enable_flower        = false
+  disable_healthchecks = false
 
   # Версии
   airflow_version = var.airflow_version
