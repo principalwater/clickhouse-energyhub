@@ -47,23 +47,26 @@ cd clickhouse-energyhub
     ```
     > **Важно:** Для `superset_secret_key` сгенерируйте уникальную строку, например, с помощью команды `openssl rand -base64 32`.
 
-## Шаг 3: Генерация TLS-сертификатов для Kafka
+## Шаг 3: Настройка переменных для новых модулей
 
-Для обеспечения безопасности соединения с Kafka (SASL/SSL) необходимо сгенерировать сертификаты. Мы автоматизировали этот процесс.
+В файле `terraform.tfvars` убедитесь, что заполнены все необходимые переменные для модулей Kafka и Monitoring:
 
-1.  **Откройте файл `scripts/generate_certs.sh`** и измените пароль по умолчанию в переменной `PASSWORD` на свой собственный надежный пароль.
-2.  **Запустите скрипт** из корневой директории проекта:
-    ```bash
-    bash scripts/generate_certs.sh
-    ```
-    Скрипт автоматически скачает нужный Docker-образ и создаст файлы `kafka.keystore.jks` и `kafka.truststore.jks` в директории `infra/terraform/secrets/`.
+```hcl
+# Kafka Configuration
+kafka_version               = "7.4.0"
+kafka_admin_user           = "admin"
+kafka_admin_password       = "YOUR_KAFKA_ADMIN_PASSWORD"
+kafka_ssl_keystore_password = "YOUR_KEYSTORE_PASSWORD"
+topic_1min                 = "energy_data_1min"
+topic_5min                 = "energy_data_5min"
 
-3.  **Добавьте пароль от сертификатов** в ваш `terraform.tfvars`:
-    ```hcl
-    # infra/terraform/terraform.tfvars
-    
-    kafka_ssl_keystore_password = "ВАШ_ПАРОЛЬ_ОТ_СЕРТИФИКАТОВ"
-    ```
+# Monitoring Configuration  
+portainer_version    = "2.19.4"
+portainer_https_port = 9443
+portainer_agent_port = 9000
+```
+
+**Важно:** SSL-сертификаты для Kafka будут сгенерированы автоматически во время выполнения `terraform apply` с использованием скрипта `scripts/generate_certs.sh`. Убедитесь, что пароль `kafka_ssl_keystore_password` надежный и соответствует вашим требованиям безопасности.
 
 ## Шаг 4: Развертывание инфраструктуры
 
@@ -128,3 +131,4 @@ cd clickhouse-energyhub
 - [**Кластер ClickHouse**](./infra/terraform/modules/clickhouse-cluster/README.md)
 - [**Инфраструктура BI**](./infra/terraform/modules/bi-infra/README.md)
 - [**Apache Kafka**](./infra/terraform/modules/kafka/README.md)
+- [**Мониторинг (Portainer)**](./infra/terraform/modules/monitoring/README.md)

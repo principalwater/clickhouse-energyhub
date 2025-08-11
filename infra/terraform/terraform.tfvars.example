@@ -23,6 +23,7 @@ sa_password         = "YOUR_BI_ADMIN_PASSWORD"
 superset_secret_key = "YOUR_SUPERSET_SECRET_KEY" # Сгенерируйте командой: openssl rand -base64 32
 
 # Учетные данные для Kafka
+kafka_admin_user            = "admin"
 kafka_admin_password        = "YOUR_KAFKA_ADMIN_PASSWORD"
 kafka_ssl_keystore_password = "YOUR_KEYSTORE_PASSWORD"
 
@@ -39,3 +40,13 @@ storage_type = "local_storage"
 # Флаги для включения/отключения BI-инструментов
 # deploy_metabase = true
 # deploy_superset = true
+
+# Kafka Configuration
+kafka_version = "7.4.0"
+topic_1min    = "energy_data_1min"
+topic_5min    = "energy_data_5min"
+
+# Monitoring Configuration (Portainer)
+portainer_version    = "2.19.4"
+portainer_https_port = 9443
+portainer_agent_port = 9000
