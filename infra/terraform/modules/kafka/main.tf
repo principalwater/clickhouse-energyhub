@@ -226,7 +226,7 @@ resource "null_resource" "enable_kafka_acl" {
 resource "local_file" "kafka_client_properties" {
   content = <<-EOT
 security.protocol=SASL_SSL
-ssl.truststore.location=/tmp/secrets/kafka.truststore.jks
+ssl.truststore.location=/etc/kafka/secrets/kafka.truststore.jks
 ssl.truststore.password=${var.kafka_ssl_keystore_password}
 sasl.mechanism=SCRAM-SHA-256
 sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${var.kafka_admin_user}" password="${var.kafka_admin_password}";
