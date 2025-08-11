@@ -1,0 +1,23 @@
+# Основные зависимости для dbt модуля
+dbt-core>=1.5.0
+dbt-clickhouse>=1.5.0
+
+# Дополнительные пакеты для разработки
+clickhouse-connect>=0.6.0
+clickhouse-driver>=0.2.0
+
+# Утилиты для работы с данными
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Логирование и мониторинг
+structlog>=23.0.0
+prometheus-client>=0.16.0
+
+# Тестирование
+pytest>=7.0.0
+pytest-dbt>=1.0.0
+
+# Документация
+mkdocs>=1.4.0
+mkdocs-material>=9.0.0

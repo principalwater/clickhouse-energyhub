@@ -1,0 +1,89 @@
+version: 2
+
+sources:
+  - name: dds
+    description: "Данные из DDS слоя"
+    database: default
+    schema: dds
+    
+    tables:
+      - name: dds_energy_consumption
+        description: "Детальные данные потребления энергии"
+        columns:
+          - name: id
+            description: "Уникальный идентификатор измерения"
+            tests:
+              - not_null
+              - unique
+          - name: timestamp
+            description: "Временная метка измерения"
+            tests:
+              - not_null
+          - name: energy_consumption
+            description: "Потребление энергии в кВт*ч"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 10000
+          - name: voltage
+            description: "Напряжение в В"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 200
+                  max_value: 250
+          - name: current
+            description: "Ток в А"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+          - name: power_factor
+            description: "Коэффициент мощности"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0.8
+                  max_value: 1.0
+          - name: device_id
+            description: "Идентификатор устройства"
+            tests:
+              - not_null
+          - name: location_id
+            description: "Идентификатор локации"
+            tests:
+              - not_null
+          - name: real_power_kw
+            description: "Реальная мощность в кВт"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 10000
+          - name: device_load_percent
+            description: "Нагрузка устройства в процентах"
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+          - name: efficiency_rating
+            description: "Рейтинг эффективности"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  values: ['High Efficiency', 'Good Efficiency', 'Acceptable Efficiency', 'Low Efficiency']
+          - name: anomaly_flag
+            description: "Флаг аномалии"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  values: ['Normal', 'Overload', 'Negative Consumption', 'Voltage Out of Range', 'Current Out of Range', 'Power Factor Out of Range']
+          - name: ods_dq_score
+            description: "DQ score из ODS слоя"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1

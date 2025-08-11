@@ -1,0 +1,250 @@
+version: 2
+
+macros:
+  - name: get_dq_threshold
+    description: "Получение порога DQ проверок для окружения"
+    arguments:
+      - name: environment
+        type: string
+        description: "Окружение (dev, test, prod)"
+        default: "dev"
+    returns:
+      type: float
+      description: "Порог DQ проверок"
+
+  - name: log_dq_result
+    description: "Логирование результатов DQ проверок"
+    arguments:
+      - name: test_name
+        type: string
+        description: "Название теста"
+      - name: result
+        type: string
+        description: "Результат теста"
+      - name: expected
+        type: string
+        description: "Ожидаемое значение"
+      - name: actual
+        type: string
+        description: "Фактическое значение"
+      - name: severity
+        type: string
+        description: "Уровень важности"
+        default: "info"
+
+  - name: create_dq_summary_table
+    description: "Создание таблицы для хранения результатов DQ проверок"
+    returns:
+      type: string
+      description: "SQL для создания таблицы"
+
+  - name: insert_dq_result
+    description: "Вставка результата DQ проверки в таблицу"
+    arguments:
+      - name: test_name
+        type: string
+        description: "Название теста"
+      - name: table_name
+        type: string
+        description: "Название таблицы"
+      - name: column_name
+        type: string
+        description: "Название колонки"
+      - name: test_type
+        type: string
+        description: "Тип теста"
+      - name: expected_value
+        type: string
+        description: "Ожидаемое значение"
+      - name: actual_value
+        type: string
+        description: "Фактическое значение"
+      - name: result
+        type: string
+        description: "Результат теста"
+      - name: severity
+        type: string
+        description: "Уровень важности"
+        default: "info"
+      - name: error_message
+        type: string
+        description: "Сообщение об ошибке"
+        default: ""
+
+  - name: get_dq_statistics
+    description: "Получение статистики DQ проверок"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Название таблицы"
+      - name: days_back
+        type: integer
+        description: "Количество дней назад"
+        default: 7
+    returns:
+      type: table
+      description: "Статистика DQ проверок"
+
+  - name: alert_dq_failure
+    description: "Отправка алерта при провале DQ проверки"
+    arguments:
+      - name: test_name
+        type: string
+        description: "Название теста"
+      - name: table_name
+        type: string
+        description: "Название таблицы"
+      - name: column_name
+        type: string
+        description: "Название колонки"
+      - name: expected
+        type: string
+        description: "Ожидаемое значение"
+      - name: actual
+        type: string
+        description: "Фактическое значение"
+      - name: threshold
+        type: float
+        description: "Порог проверки"
+
+  - name: run_dq_suite
+    description: "Запуск набора DQ проверок"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Название таблицы"
+      - name: columns_config
+        type: list
+        description: "Конфигурация колонок для проверки"
+    returns:
+      type: list
+      description: "Результаты DQ проверок"
+
+  - name: clickhouse_partition_by_date
+    description: "Создание партиционирования по дате для ClickHouse"
+    arguments:
+      - name: column_name
+        type: string
+        description: "Колонка с датой"
+      - name: partition_type
+        type: string
+        description: "Тип партиционирования"
+        default: "monthly"
+    returns:
+      type: string
+      description: "SQL для партиционирования"
+
+  - name: clickhouse_engine
+    description: "Создание движка таблицы для ClickHouse"
+    arguments:
+      - name: engine_type
+        type: string
+        description: "Тип движка"
+        default: "MergeTree"
+      - name: order_by
+        type: string
+        description: "Колонки для ORDER BY"
+        default: null
+      - name: partition_by
+        type: string
+        description: "SQL для партиционирования"
+        default: null
+    returns:
+      type: string
+      description: "SQL для создания движка"
+
+  - name: clickhouse_index
+    description: "Создание индексов для ClickHouse"
+    arguments:
+      - name: columns
+        type: list
+        description: "Список колонок для индексов"
+      - name: index_type
+        type: string
+        description: "Тип индекса"
+        default: "minmax"
+    returns:
+      type: string
+      description: "SQL для создания индексов"
+
+  - name: clickhouse_incremental_strategy
+    description: "Стратегия инкрементальной загрузки для ClickHouse"
+    returns:
+      type: string
+      description: "SQL для инкрементальной загрузки"
+
+  - name: clickhouse_merge_operation
+    description: "Операция слияния для ClickHouse"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Название целевой таблицы"
+      - name: source_table
+        type: string
+        description: "Название исходной таблицы"
+      - name: merge_key
+        type: string
+        description: "Ключ для слияния"
+    returns:
+      type: string
+      description: "SQL для операции слияния"
+
+  - name: incremental_strategy_clickhouse
+    description: "Стратегия инкрементальной загрузки для ClickHouse"
+    returns:
+      type: string
+      description: "SQL для инкрементальной загрузки"
+
+  - name: get_incremental_columns
+    description: "Получение списка колонок для инкрементальной загрузки"
+    returns:
+      type: list
+      description: "Список колонок"
+
+  - name: incremental_merge_strategy
+    description: "Стратегия слияния для инкрементальной загрузки"
+    arguments:
+      - name: target_table
+        type: string
+        description: "Целевая таблица"
+      - name: source_table
+        type: string
+        description: "Исходная таблица"
+      - name: merge_key
+        type: string
+        description: "Ключ для слияния"
+    returns:
+      type: string
+      description: "SQL для стратегии слияния"
+
+  - name: incremental_delete_strategy
+    description: "Стратегия удаления для инкрементальной загрузки"
+    arguments:
+      - name: target_table
+        type: string
+        description: "Целевая таблица"
+      - name: source_table
+        type: string
+        description: "Исходная таблица"
+      - name: delete_key
+        type: string
+        description: "Ключ для удаления"
+    returns:
+      type: string
+      description: "SQL для стратегии удаления"
+
+  - name: incremental_upsert_strategy
+    description: "Стратегия upsert для инкрементальной загрузки"
+    arguments:
+      - name: target_table
+        type: string
+        description: "Целевая таблица"
+      - name: source_table
+        type: string
+        description: "Исходная таблица"
+      - name: unique_key
+        type: string
+        description: "Уникальный ключ"
+    returns:
+      type: string
+      description: "SQL для стратегии upsert"

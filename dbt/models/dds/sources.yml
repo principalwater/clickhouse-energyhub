@@ -1,0 +1,71 @@
+version: 2
+
+sources:
+  - name: ods
+    description: "Данные из ODS слоя"
+    database: default
+    schema: ods
+    
+    tables:
+      - name: ods_energy_measurements
+        description: "Предобработанные измерения энергопотребления"
+        columns:
+          - name: id
+            description: "Уникальный идентификатор измерения"
+            tests:
+              - not_null
+              - unique
+          - name: timestamp
+            description: "Временная метка измерения"
+            tests:
+              - not_null
+          - name: energy_consumption
+            description: "Потребление энергии в кВт*ч"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 10000
+          - name: voltage
+            description: "Напряжение в В"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 200
+                  max_value: 250
+          - name: current
+            description: "Ток в А"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 100
+          - name: power_factor
+            description: "Коэффициент мощности"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0.8
+                  max_value: 1.0
+          - name: device_id
+            description: "Идентификатор устройства"
+            tests:
+              - not_null
+          - name: location_id
+            description: "Идентификатор локации"
+            tests:
+              - not_null
+          - name: ods_dq_score
+            description: "DQ score из ODS слоя"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1
+          - name: ready_for_dds
+            description: "Флаг готовности для DDS"
+            tests:
+              - not_null
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1

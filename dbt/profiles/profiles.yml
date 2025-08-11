@@ -1,0 +1,35 @@
+clickhouse_energyhub:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      host: localhost
+      port: 9000
+      user: default
+      password: ""
+      database: default
+      schema: dbt_dev
+      secure: false
+      verify: false
+      
+    test:
+      type: clickhouse
+      host: localhost
+      port: 9000
+      user: default
+      password: ""
+      database: default
+      schema: dbt_test
+      secure: false
+      verify: false
+      
+    prod:
+      type: clickhouse
+      host: clickhouse.energyhub.local
+      port: 9000
+      user: dbt_user
+      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
+      database: energyhub
+      schema: dbt_prod
+      secure: true
+      verify: true

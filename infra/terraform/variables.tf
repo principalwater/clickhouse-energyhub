@@ -470,3 +470,29 @@ variable "airflow_config_path" {
   type        = string
   default     = "../../volumes/airflow/config"
 }
+
+# --- DBT Variables ---
+
+variable "deploy_dbt" {
+  description = "Включить развертывание dbt модуля"
+  type        = bool
+  default     = true
+}
+
+variable "dbt_version" {
+  description = "Версия dbt для ClickHouse"
+  type        = string
+  default     = "1.7.3"
+}
+
+variable "dbt_port" {
+  description = "Порт для dbt сервиса"
+  type        = number
+  default     = 8080
+}
+
+variable "dbt_base_path" {
+  description = "Базовый путь для dbt проекта"
+  type        = string
+  default     = "../../dbt"
+}

@@ -279,3 +279,30 @@ module "airflow" {
 
   depends_on = [module.clickhouse_cluster, module.kafka, module.postgres]
 }
+
+module "dbt" {
+  source = "./modules/dbt"
+
+  providers = {
+    docker = docker
+  }
+
+  # Основные настройки dbt
+  dbt_project_name = "clickhouse_energyhub"
+  dbt_version      = var.dbt_version
+  dbt_port         = var.dbt_port
+  dbt_host         = "localhost"
+  dbt_base_path    = var.dbt_base_path
+
+  # Подключение к ClickHouse
+  clickhouse_host     = "clickhouse-01"
+  clickhouse_port     = 9000
+  clickhouse_database = "default"
+  clickhouse_user     = var.bi_user_name
+  clickhouse_password = var.bi_user_password
+  clickhouse_network_name = module.clickhouse_cluster.network_name
+
+  depends_on = [module.clickhouse_cluster]
+  
+  count = var.deploy_dbt ? 1 : 0
+}

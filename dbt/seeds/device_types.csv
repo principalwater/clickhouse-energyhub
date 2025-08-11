@@ -1,0 +1,11 @@
+device_type_id,device_type_name,description,power_rating_min,power_rating_max,voltage_standard,is_active
+1,Smart Meter,Умный счетчик электроэнергии,0,10000,220,1
+2,Solar Panel,Солнечная панель,0,5000,220,1
+3,Wind Turbine,Ветрогенератор,0,2000,380,1
+4,Battery Storage,Аккумуляторная батарея,0,5000,220,1
+5,EV Charger,Зарядное устройство для электромобиля,0,7500,220,1
+6,Heat Pump,Тепловой насос,0,15000,380,1
+7,Industrial Motor,Промышленный электродвигатель,0,50000,380,1
+8,LED Lighting,LED освещение,0,1000,220,1
+9,Smart Thermostat,Умный термостат,0,500,220,1
+10,Energy Monitor,Монитор энергопотребления,0,10000,220,1
