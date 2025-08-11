@@ -141,22 +141,34 @@ resource "null_resource" "init_airflow_db" {
       # Check if Airflow user exists
       USER_EXISTS=$(docker exec -i postgres psql -U postgres -d postgres -tc "SELECT 1 FROM pg_roles WHERE rolname = '${var.airflow_pg_user}'" | grep -q 1 && echo yes || echo no)
       if [ "$USER_EXISTS" = "no" ]; then
-        echo "Creating Airflow user: ${var.airflow_pg_user}"
-        docker exec -i postgres psql -U postgres -d postgres -c "CREATE USER ${var.airflow_pg_user} WITH PASSWORD '${local.effective_airflow_pg_password}';"
+        echo "Creating Airflow user: ${var.airflow_pg_user} with extended privileges"
+        docker exec -i postgres psql -U postgres -d postgres -c "CREATE USER ${var.airflow_pg_user} WITH PASSWORD '${local.effective_airflow_pg_password}' CREATEDB CREATEROLE;"
       else
-        echo "Airflow user ${var.airflow_pg_user} already exists, skipping creation"
+        echo "Updating Airflow user ${var.airflow_pg_user} with extended privileges"
+        docker exec -i postgres psql -U postgres -d postgres -c "ALTER USER ${var.airflow_pg_user} WITH PASSWORD '${local.effective_airflow_pg_password}' CREATEDB CREATEROLE;"
       fi
       
       # Check if Airflow DB exists
       DB_EXISTS=$(docker exec -i postgres psql -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '${var.airflow_pg_db}'" | grep -q 1 && echo yes || echo no)
       if [ "$DB_EXISTS" = "no" ]; then
         echo "Creating Airflow database: ${var.airflow_pg_db}"
-        docker exec -i postgres createdb -U postgres ${var.airflow_pg_db}
+        docker exec -i postgres createdb -U postgres -O ${var.airflow_pg_user} ${var.airflow_pg_db}
       fi
       
-      # Grant all privileges on database to airflow user
-      echo "Granting all privileges on ${var.airflow_pg_db} to ${var.airflow_pg_user}"
+      # Grant comprehensive privileges to airflow user
+      echo "Granting comprehensive privileges on ${var.airflow_pg_db} to ${var.airflow_pg_user}"
       docker exec -i postgres psql -U postgres -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE ${var.airflow_pg_db} TO ${var.airflow_pg_user};"
+      
+      # Grant schema-level privileges in the airflow database
+      echo "Granting schema privileges in ${var.airflow_pg_db} to ${var.airflow_pg_user}"
+      docker exec -i postgres psql -U postgres -d ${var.airflow_pg_db} -c "
+        GRANT ALL PRIVILEGES ON SCHEMA public TO ${var.airflow_pg_user};
+        GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${var.airflow_pg_user};
+        GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ${var.airflow_pg_user};
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${var.airflow_pg_user};
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ${var.airflow_pg_user};
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO ${var.airflow_pg_user};
+      "
     EOT
     interpreter = ["/bin/bash", "-c"]
   }

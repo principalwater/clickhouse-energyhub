@@ -29,7 +29,7 @@ output "airflow_redis_container_name" {
 
 output "airflow_webserver_container_name" {
   description = "Имя контейнера веб-сервера Airflow."
-  value       = var.deploy_airflow ? docker_container.airflow_webserver[0].name : null
+  value       = var.deploy_airflow ? docker_container.airflow_api_server[0].name : null
 }
 
 output "airflow_scheduler_container_name" {
@@ -42,9 +42,19 @@ output "airflow_worker_container_name" {
   value       = var.deploy_airflow ? docker_container.airflow_worker[0].name : null
 }
 
+output "airflow_dag_processor_container_name" {
+  description = "Имя контейнера DAG процессора Airflow."
+  value       = var.deploy_airflow ? docker_container.airflow_dag_processor[0].name : null
+}
+
+output "airflow_triggerer_container_name" {
+  description = "Имя контейнера триггеров Airflow."
+  value       = var.deploy_airflow ? docker_container.airflow_triggerer[0].name : null
+}
+
 output "airflow_flower_container_name" {
   description = "Имя контейнера Flower для мониторинга Airflow."
-  value       = var.deploy_airflow ? docker_container.airflow_flower[0].name : null
+  value       = var.deploy_airflow && var.enable_flower ? docker_container.airflow_flower[0].name : null
 }
 
 output "airflow_admin_user" {
@@ -60,7 +70,7 @@ output "airflow_postgres_connection_string" {
 
 output "airflow_redis_connection_string" {
   description = "Строка подключения к Redis для Airflow."
-  value       = var.deploy_airflow ? "redis://:@airflow_redis:6379/0" : null
+  value       = var.deploy_airflow ? "redis://:@redis:6379/0" : null
 }
 
 output "airflow_dags_path" {

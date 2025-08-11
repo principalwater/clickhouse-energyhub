@@ -99,32 +99,32 @@ module "postgres" {
   source = "./modules/postgres"
 
   # Основные настройки
-  enable_postgres = var.deploy_metabase || var.deploy_superset || var.deploy_airflow
-  postgres_version = var.postgres_version
-  postgres_data_path = var.bi_postgres_data_path
+  enable_postgres             = var.deploy_metabase || var.deploy_superset || var.deploy_airflow
+  postgres_version            = var.postgres_version
+  postgres_data_path          = var.bi_postgres_data_path
   postgres_superuser_password = var.pg_password
-  pg_password = var.pg_password
-  postgres_restore_enabled = var.postgres_restore_enabled
+  pg_password                 = var.pg_password
+  postgres_restore_enabled    = var.postgres_restore_enabled
 
   # Флаги сервисов
   enable_metabase = var.deploy_metabase
   enable_superset = var.deploy_superset
-  enable_airflow = var.deploy_airflow
+  enable_airflow  = var.deploy_airflow
 
   # Metabase настройки
-  metabase_pg_user = var.metabase_pg_user
+  metabase_pg_user     = var.metabase_pg_user
   metabase_pg_password = var.pg_password
-  metabase_pg_db = var.metabase_pg_db
+  metabase_pg_db       = var.metabase_pg_db
 
   # Superset настройки
-  superset_pg_user = var.superset_pg_user
+  superset_pg_user     = var.superset_pg_user
   superset_pg_password = var.pg_password
-  superset_pg_db = var.superset_pg_db
+  superset_pg_db       = var.superset_pg_db
 
   # Airflow настройки
-  airflow_pg_user = var.airflow_postgres_user
+  airflow_pg_user     = var.airflow_postgres_user
   airflow_pg_password = var.airflow_postgres_password
-  airflow_pg_db = var.airflow_postgres_db
+  airflow_pg_db       = var.airflow_postgres_db
 
   depends_on = [module.clickhouse_cluster]
 }
@@ -157,28 +157,28 @@ module "bi_infra" {
 
   # Postgres settings (используем модуль postgres)
   postgres_container_name = module.postgres.postgres_container_name
-  postgres_network_name = module.postgres.postgres_network_name
+  postgres_network_name   = module.postgres.postgres_network_name
 
   # Metabase settings
-  metabase_site_name    = var.metabase_site_name
+  metabase_site_name = var.metabase_site_name
 
   # User lists (defaults to empty list)
   metabase_local_users = var.metabase_local_users
   superset_local_users = var.superset_local_users
 
   # Metabase settings
-  metabase_pg_user = var.metabase_pg_user
+  metabase_pg_user     = var.metabase_pg_user
   metabase_pg_password = var.pg_password
-  metabase_pg_db = var.metabase_pg_db
+  metabase_pg_db       = var.metabase_pg_db
   metabase_sa_username = var.sa_username
   metabase_sa_password = var.sa_password
   metabase_bi_username = var.bi_user_name
   metabase_bi_password = var.bi_user_password
 
   # Superset settings
-  superset_pg_user = var.superset_pg_user
+  superset_pg_user     = var.superset_pg_user
   superset_pg_password = var.pg_password
-  superset_pg_db = var.superset_pg_db
+  superset_pg_db       = var.superset_pg_db
   superset_sa_username = var.sa_username
   superset_sa_password = var.sa_password
   superset_bi_username = var.bi_user_name
@@ -191,10 +191,10 @@ module "bi_infra" {
   postgres_restore_enabled = var.postgres_restore_enabled
 
   # Airflow settings (для поддержки в PostgreSQL)
-  airflow_enabled = var.deploy_airflow
-  airflow_pg_user = var.airflow_postgres_user
+  airflow_enabled     = var.deploy_airflow
+  airflow_pg_user     = var.airflow_postgres_user
   airflow_pg_password = var.airflow_postgres_password
-  airflow_pg_db = var.airflow_postgres_db
+  airflow_pg_db       = var.airflow_postgres_db
 
   # Fallback passwords for local logic (используем те же переменные, что и выше)
   # metabase_pg_password и superset_pg_password уже переданы выше как var.pg_password
@@ -230,13 +230,18 @@ module "kafka" {
 
 module "airflow" {
   source = "./modules/airflow"
+  
+  providers = {
+    docker = docker
+  }
 
   # Основные настройки
   deploy_airflow = var.deploy_airflow
+  enable_flower  = false
 
   # Версии
-  airflow_version         = var.airflow_version
-  redis_version           = var.redis_version
+  airflow_version = var.airflow_version
+  redis_version   = var.redis_version
 
   # Порты
   airflow_webserver_port = var.airflow_webserver_port
@@ -244,7 +249,7 @@ module "airflow" {
 
   # PostgreSQL (используем модуль postgres)
   airflow_postgres_connection_string = module.postgres.airflow_db_connection_string
-  postgres_network_name = module.postgres.postgres_network_name
+  postgres_network_name              = module.postgres.postgres_network_name
 
   # Redis
   airflow_redis_data_path = var.airflow_redis_data_path
@@ -252,7 +257,7 @@ module "airflow" {
   # Airflow
   airflow_admin_user           = var.airflow_admin_user
   airflow_admin_password       = var.airflow_admin_password
-  airflow_fernet_key          = var.airflow_fernet_key
+  airflow_fernet_key           = var.airflow_fernet_key
   airflow_webserver_secret_key = var.airflow_webserver_secret_key
 
   # Пути к директориям

@@ -138,3 +138,9 @@ variable "kafka_topic_5min" {
   description = "Название топика Kafka для 5-минутных данных."
   type        = string
 }
+
+variable "enable_flower" {
+  description = "Включить Flower для мониторинга Celery"
+  type        = bool
+  default     = false
+}
