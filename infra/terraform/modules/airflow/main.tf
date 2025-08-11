@@ -25,9 +25,9 @@ resource "docker_network" "airflow_network" {
 # --- Создание необходимых директорий ---
 resource "null_resource" "create_airflow_directories" {
   count = var.deploy_airflow ? 1 : 0
-  
+
   provisioner "local-exec" {
-    command = <<EOT
+    command     = <<EOT
       echo "🔧 Создание директорий Airflow..."
       
       mkdir -p "${abspath(var.airflow_dags_path)}"
@@ -56,26 +56,26 @@ resource "docker_container" "redis" {
   name     = "redis"
   image    = docker_image.redis[0].name
   hostname = "redis"
-  
+
   networks_advanced {
     name = docker_network.airflow_network[0].name
   }
-  
+
   ports {
     internal = 6379
     external = 6379
   }
-  
+
   healthcheck {
-    test     = ["CMD", "redis-cli", "ping"]
-    interval = "30s"
-    timeout  = "30s"
-    retries  = 50
+    test         = ["CMD", "redis-cli", "ping"]
+    interval     = "30s"
+    timeout      = "30s"
+    retries      = 50
     start_period = "30s"
   }
-  
+
   restart = "always"
-  
+
   depends_on = [null_resource.create_airflow_directories]
 }
 
@@ -110,7 +110,7 @@ locals {
     "_AIRFLOW_WWW_USER_USERNAME=${var.airflow_admin_user}",
     "_AIRFLOW_WWW_USER_PASSWORD=${var.airflow_admin_password}"
   ] : []
-  
+
   airflow_common_volumes = var.deploy_airflow ? [
     {
       host_path      = abspath(var.airflow_dags_path)
@@ -134,9 +134,9 @@ locals {
 # --- Airflow Init (одноразовая инициализация) ---
 resource "null_resource" "airflow_init" {
   count = var.deploy_airflow ? 1 : 0
-  
+
   provisioner "local-exec" {
-    command = <<EOT
+    command     = <<EOT
       echo "🚀 Запуск инициализации Airflow 3.0.4..."
       
       # Ожидание готовности PostgreSQL
@@ -210,17 +210,17 @@ resource "null_resource" "airflow_init" {
     EOT
     interpreter = ["/bin/bash", "-c"]
   }
-  
+
   depends_on = [
     docker_container.redis[0],
     null_resource.create_airflow_directories[0]
   ]
-  
+
   triggers = {
-    airflow_version = var.airflow_version
-    admin_user = var.airflow_admin_user
+    airflow_version     = var.airflow_version
+    admin_user          = var.airflow_admin_user
     postgres_connection = var.airflow_postgres_connection_string
-    force_recreate = "v3.0.4-fixed-permissions-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+    force_recreate      = "v3.0.4-fixed-permissions-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
   }
 }
 
@@ -230,7 +230,7 @@ resource "docker_container" "airflow_api_server" {
   name     = "airflow-api-server"
   image    = docker_image.airflow[0].name
   hostname = "airflow-api-server"
-  
+
   networks_advanced {
     name = docker_network.airflow_network[0].name
   }
@@ -243,18 +243,18 @@ resource "docker_container" "airflow_api_server" {
   networks_advanced {
     name = var.postgres_network_name
   }
-  
+
   ports {
     internal = 8080
     external = var.airflow_webserver_port
   }
-  
+
   command = ["api-server"]
-  
+
   env = local.airflow_common_env
-  
+
   user = "50000:0"
-  
+
   dynamic "volumes" {
     for_each = local.airflow_common_volumes
     content {
@@ -262,17 +262,17 @@ resource "docker_container" "airflow_api_server" {
       container_path = volumes.value.container_path
     }
   }
-  
+
   healthcheck {
-    test     = ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
-    interval = "30s"
-    timeout  = "10s"
-    retries  = 5
+    test         = ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
+    interval     = "30s"
+    timeout      = "10s"
+    retries      = 5
     start_period = "30s"
   }
-  
+
   restart = "always"
-  
+
   depends_on = [
     docker_container.redis[0],
     null_resource.airflow_init[0]
@@ -285,7 +285,7 @@ resource "docker_container" "airflow_scheduler" {
   name     = "airflow-scheduler"
   image    = docker_image.airflow[0].name
   hostname = "airflow-scheduler"
-  
+
   networks_advanced {
     name = docker_network.airflow_network[0].name
   }
@@ -298,13 +298,13 @@ resource "docker_container" "airflow_scheduler" {
   networks_advanced {
     name = var.postgres_network_name
   }
-  
+
   command = ["scheduler"]
-  
+
   env = local.airflow_common_env
-  
+
   user = "50000:0"
-  
+
   dynamic "volumes" {
     for_each = local.airflow_common_volumes
     content {
@@ -312,17 +312,17 @@ resource "docker_container" "airflow_scheduler" {
       container_path = volumes.value.container_path
     }
   }
-  
+
   healthcheck {
-    test = ["CMD", "curl", "--fail", "http://localhost:8974/health"]
-    interval = "30s"
-    timeout  = "10s"
-    retries  = 3
+    test         = ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+    interval     = "30s"
+    timeout      = "10s"
+    retries      = 3
     start_period = "120s"
   }
-  
+
   restart = "always"
-  
+
   depends_on = [
     docker_container.redis[0],
     null_resource.airflow_init[0]
@@ -335,7 +335,7 @@ resource "docker_container" "airflow_worker" {
   name     = "airflow-worker"
   image    = docker_image.airflow[0].name
   hostname = "airflow-worker"
-  
+
   networks_advanced {
     name = docker_network.airflow_network[0].name
   }
@@ -348,15 +348,15 @@ resource "docker_container" "airflow_worker" {
   networks_advanced {
     name = var.postgres_network_name
   }
-  
+
   command = ["celery", "worker"]
-  
+
   env = concat(local.airflow_common_env, [
     "DUMB_INIT_SETSID=0"
   ])
-  
+
   user = "50000:0"
-  
+
   dynamic "volumes" {
     for_each = local.airflow_common_volumes
     content {
@@ -364,7 +364,7 @@ resource "docker_container" "airflow_worker" {
       container_path = volumes.value.container_path
     }
   }
-  
+
   dynamic "healthcheck" {
     for_each = var.disable_healthchecks ? [] : [1]
     content {
@@ -372,15 +372,15 @@ resource "docker_container" "airflow_worker" {
         "CMD-SHELL",
         "python -c \"import os; exit(0 if any('worker' in line for line in os.popen('ps auxf').readlines()) else 1)\" 2>/dev/null || ls /tmp/airflow-worker-ready 2>/dev/null || touch /tmp/airflow-worker-ready"
       ]
-      interval = "60s"
-      timeout  = "20s"
-      retries  = 2
+      interval     = "60s"
+      timeout      = "20s"
+      retries      = 2
       start_period = "300s"
     }
   }
-  
+
   restart = "always"
-  
+
   depends_on = [
     docker_container.redis[0],
     null_resource.airflow_init[0]
@@ -393,20 +393,20 @@ resource "docker_container" "airflow_triggerer" {
   name     = "airflow-triggerer"
   image    = docker_image.airflow[0].name
   hostname = "airflow-triggerer"
-  
+
   networks_advanced {
     name = docker_network.airflow_network[0].name
   }
   networks_advanced {
     name = var.postgres_network_name
   }
-  
+
   command = ["triggerer"]
-  
+
   env = local.airflow_common_env
-  
+
   user = "50000:0"
-  
+
   dynamic "volumes" {
     for_each = local.airflow_common_volumes
     content {
@@ -414,7 +414,7 @@ resource "docker_container" "airflow_triggerer" {
       container_path = volumes.value.container_path
     }
   }
-  
+
   dynamic "healthcheck" {
     for_each = var.disable_healthchecks ? [] : [1]
     content {
@@ -422,15 +422,15 @@ resource "docker_container" "airflow_triggerer" {
         "CMD-SHELL",
         "python -c \"import os; exit(0 if any('triggerer' in line for line in os.popen('ps auxf').readlines()) else 1)\" 2>/dev/null || ls /tmp/airflow-triggerer-ready 2>/dev/null || touch /tmp/airflow-triggerer-ready"
       ]
-      interval = "60s"
-      timeout  = "20s"
-      retries  = 2
+      interval     = "60s"
+      timeout      = "20s"
+      retries      = 2
       start_period = "300s"
     }
   }
-  
+
   restart = "always"
-  
+
   depends_on = [
     docker_container.redis[0],
     null_resource.airflow_init[0]
@@ -443,20 +443,20 @@ resource "docker_container" "airflow_dag_processor" {
   name     = "airflow-dag-processor"
   image    = docker_image.airflow[0].name
   hostname = "airflow-dag-processor"
-  
+
   networks_advanced {
     name = docker_network.airflow_network[0].name
   }
   networks_advanced {
     name = var.postgres_network_name
   }
-  
+
   command = ["dag-processor"]
-  
+
   env = local.airflow_common_env
-  
+
   user = "50000:0"
-  
+
   dynamic "volumes" {
     for_each = local.airflow_common_volumes
     content {
@@ -464,20 +464,20 @@ resource "docker_container" "airflow_dag_processor" {
       container_path = volumes.value.container_path
     }
   }
-  
+
   healthcheck {
     test = [
       "CMD-SHELL",
       "python -c 'from airflow.models import DagBag; db = DagBag(include_examples=False); exit(0 if len(db.dag_ids) >= 0 else 1)' || exit 1"
     ]
-    interval = "120s"
-    timeout  = "30s"
-    retries  = 1
+    interval     = "120s"
+    timeout      = "30s"
+    retries      = 1
     start_period = "300s"
   }
-  
+
   restart = "always"
-  
+
   depends_on = [
     docker_container.redis[0],
     null_resource.airflow_init[0]
@@ -490,22 +490,22 @@ resource "docker_container" "airflow_flower" {
   name     = "airflow-flower"
   image    = docker_image.airflow[0].name
   hostname = "airflow-flower"
-  
+
   networks_advanced {
     name = docker_network.airflow_network[0].name
   }
-  
+
   ports {
     internal = 5555
     external = var.airflow_flower_port
   }
-  
+
   command = ["celery", "flower"]
-  
+
   env = local.airflow_common_env
-  
+
   user = "50000:0"
-  
+
   dynamic "volumes" {
     for_each = local.airflow_common_volumes
     content {
@@ -513,17 +513,17 @@ resource "docker_container" "airflow_flower" {
       container_path = volumes.value.container_path
     }
   }
-  
+
   healthcheck {
-    test = ["CMD", "curl", "--fail", "http://localhost:5555/"]
-    interval = "30s"
-    timeout  = "10s"
-    retries  = 5
+    test         = ["CMD", "curl", "--fail", "http://localhost:5555/"]
+    interval     = "30s"
+    timeout      = "10s"
+    retries      = 5
     start_period = "30s"
   }
-  
+
   restart = "always"
-  
+
   depends_on = [
     docker_container.redis[0],
     null_resource.airflow_init[0]
@@ -533,9 +533,9 @@ resource "docker_container" "airflow_flower" {
 # --- Настройка подключений после запуска ---
 resource "null_resource" "setup_airflow_connections" {
   count = var.deploy_airflow ? 1 : 0
-  
+
   provisioner "local-exec" {
-    command = <<EOT
+    command     = <<EOT
       echo "🔧 Ожидание готовности API сервера..."
       
       for i in {1..60}; do
@@ -566,11 +566,11 @@ resource "null_resource" "setup_airflow_connections" {
     EOT
     interpreter = ["/bin/bash", "-c"]
   }
-  
+
   depends_on = [
     docker_container.airflow_api_server[0]
   ]
-  
+
   triggers = {
     api_server_config = docker_container.airflow_api_server[0].id
   }
@@ -579,7 +579,7 @@ resource "null_resource" "setup_airflow_connections" {
 # --- Создание примера DAG ---
 resource "local_file" "sample_dag" {
   count = var.deploy_airflow ? 1 : 0
-  
+
   content = <<EOF
 from datetime import datetime, timedelta
 from airflow import DAG
@@ -653,8 +653,8 @@ health_check = BashOperator(
 # Определение зависимостей задач
 extract_task >> transform_task >> load_task >> health_check
 EOF
-  
+
   filename = "${var.airflow_dags_path}/energy_data_pipeline.py"
-  
+
   depends_on = [null_resource.create_airflow_directories]
 }

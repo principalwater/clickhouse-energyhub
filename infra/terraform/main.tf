@@ -230,7 +230,7 @@ module "kafka" {
 
 module "airflow" {
   source = "./modules/airflow"
-  
+
   providers = {
     docker = docker
   }
