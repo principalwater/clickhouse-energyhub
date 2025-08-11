@@ -12,6 +12,10 @@ docker-compose.override.yml
 # Data Volumes
 volumes/
 
+# Secrets and environment variables
+env/
+secrets/
+
 # Python
 __pycache__/
 *.pyc
@@ -19,7 +23,7 @@ __pycache__/
 *.pyd
 .venv/
 venv/
-env/
+/infra/env/
 *.egg-info/
 dist/
 build/

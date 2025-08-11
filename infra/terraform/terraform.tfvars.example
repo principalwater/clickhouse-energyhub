@@ -1,0 +1,41 @@
+# #############################################################################
+# # Пример файла с переменными.
+# # Скопируйте этот файл в terraform.tfvars и заполните своими значениями.
+# # ВАЖНО: Не храните файл terraform.tfvars в системе контроля версий!
+# #############################################################################
+
+# ----------------------------------
+# ОБЯЗАТЕЛЬНЫЕ ПЕРЕМЕННЫЕ (ЗАМЕНИТЬ)
+# ----------------------------------
+# Эти пароли и ключи должны быть уникальными и надежными.
+
+# Пароли для пользователей ClickHouse
+super_user_password = "YOUR_CLICKHOUSE_PASSWORD"
+bi_user_password    = "YOUR_BI_USER_PASSWORD"
+
+# Учетные данные для MinIO (S3)
+minio_root_user     = "minioadmin"
+minio_root_password = "YOUR_MINIO_PASSWORD"
+
+# Пароли для BI-инфраструктуры
+pg_password         = "YOUR_POSTGRES_PASSWORD"
+sa_password         = "YOUR_BI_ADMIN_PASSWORD"
+superset_secret_key = "YOUR_SUPERSET_SECRET_KEY" # Сгенерируйте командой: openssl rand -base64 32
+
+# Учетные данные для Kafka
+kafka_admin_password        = "YOUR_KAFKA_ADMIN_PASSWORD"
+kafka_ssl_keystore_password = "YOUR_KEYSTORE_PASSWORD"
+
+# Пользователь для SSH-доступа (требуется только для удаленного развертывания)
+# remote_ssh_user     = "your_ssh_user"
+
+
+# ----------------------------------
+# НАСТРОЙКИ РАЗВЕРТЫВАНИЯ (МОЖНО ОСТАВИТЬ ПО УМОЛЧАНИЮ)
+# ----------------------------------
+# Для локального запуска рекомендуется оставить storage_type = "local_storage"
+storage_type = "local_storage"
+
+# Флаги для включения/отключения BI-инструментов
+# deploy_metabase = true
+# deploy_superset = true

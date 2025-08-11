@@ -299,3 +299,65 @@ variable "superset_local_users" {
   type        = any
   default     = []
 }
+
+# --------------------------------------------------------------------------------------------------
+# Kafka Variables
+# --------------------------------------------------------------------------------------------------
+
+variable "kafka_admin_user" {
+  description = "Имя пользователя-администратора для Kafka."
+  type        = string
+  default     = "admin"
+}
+
+variable "kafka_admin_password" {
+  description = "Пароль для пользователя-администратора Kafka."
+  type        = string
+  sensitive   = true
+}
+
+variable "kafka_ssl_keystore_password" {
+  description = "Пароль для Keystore и Truststore Kafka."
+  type        = string
+  sensitive   = true
+}
+
+variable "kafka_version" {
+  description = "Версия для Docker-образов Confluent Platform."
+  type        = string
+  default     = "7.2.15"
+}
+
+variable "topic_1min" {
+  description = "Название топика для 1-минутных данных."
+  type        = string
+  default     = "energy_data_1min"
+}
+
+variable "topic_5min" {
+  description = "Название топика для 5-минутных данных."
+  type        = string
+  default     = "energy_data_5min"
+}
+
+# --------------------------------------------------------------------------------------------------
+# Monitoring Variables
+# --------------------------------------------------------------------------------------------------
+
+variable "portainer_version" {
+  description = "Версия Portainer CE."
+  type        = string
+  default     = "latest"
+}
+
+variable "portainer_https_port" {
+  description = "Порт для HTTPS-интерфейса Portainer."
+  type        = number
+  default     = 9443
+}
+
+variable "portainer_agent_port" {
+  description = "Порт для Docker agent."
+  type        = number
+  default     = 10010
+}
