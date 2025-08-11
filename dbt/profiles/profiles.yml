@@ -11,6 +11,7 @@ clickhouse_energyhub:
       schema: dbt_dev
       secure: false
       verify: false
+      target_type: local
       
     test:
       type: clickhouse
@@ -22,10 +23,11 @@ clickhouse_energyhub:
       schema: dbt_test
       secure: false
       verify: false
+      target_type: local
       
     prod:
       type: clickhouse
-      host: clickhouse.energyhub.local
+      host: clickhouse-01.energyhub.local
       port: 9000
       user: dbt_user
       password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
@@ -33,3 +35,16 @@ clickhouse_energyhub:
       schema: dbt_prod
       secure: true
       verify: true
+      target_type: cluster
+      
+    cluster:
+      type: clickhouse
+      host: clickhouse-01.energyhub.local
+      port: 9000
+      user: dbt_user
+      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
+      database: energyhub
+      schema: dbt_prod
+      secure: true
+      verify: true
+      target_type: cluster

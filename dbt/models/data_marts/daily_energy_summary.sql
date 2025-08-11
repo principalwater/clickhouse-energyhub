@@ -2,7 +2,7 @@
   config(
     materialized='table',
     schema='data_marts',
-    tags=['data_marts', 'daily_summary', 'energy_analytics'],
+    tags=['data_marts', 'daily_summary', 'energy_analytics', 'cluster_optimized'],
     indexes=[
       {'columns': ['date_key'], 'type': 'minmax'},
       {'columns': ['region'], 'type': 'set'},

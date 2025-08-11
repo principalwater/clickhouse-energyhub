@@ -2,7 +2,7 @@
   config(
     materialized='table',
     schema='dds',
-    tags=['dds', 'dimension', 'locations'],
+    tags=['dds', 'dimension', 'locations', 'cluster_optimized'],
     indexes=[
       {'columns': ['location_id'], 'type': 'minmax'},
       {'columns': ['region', 'city'], 'type': 'set'},

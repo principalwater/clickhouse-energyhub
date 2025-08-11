@@ -1,0 +1,216 @@
+version: 2
+
+models:
+  - name: int_energy_consumption_hourly
+    description: "Промежуточная модель для почасового потребления энергии"
+    columns:
+      - name: date_key
+        description: "Дата измерения"
+        tests:
+          - not_null
+          - dbt_utils.is_timestamp
+      - name: hour_key
+        description: "Час измерения (0-23)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 23
+      - name: device_id
+        description: "ID устройства"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_devices')
+              field: id
+      - name: location_id
+        description: "ID локации"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_locations')
+              field: id
+      - name: dq_score
+        description: "Data Quality score (0-1)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.0
+              max_value: 1.0
+      - name: measurement_count
+        description: "Количество измерений за час"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+      - name: total_consumption
+        description: "Общее потребление за час"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: avg_voltage
+        description: "Среднее напряжение за час"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000
+      - name: avg_current
+        description: "Средний ток за час"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+      - name: avg_power_factor
+        description: "Средний коэффициент мощности за час"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.0
+              max_value: 1.0
+
+  - name: int_energy_consumption_daily
+    description: "Промежуточная модель для ежедневного потребления энергии"
+    columns:
+      - name: date_key
+        description: "Дата измерения"
+        tests:
+          - not_null
+          - dbt_utils.is_timestamp
+      - name: device_id
+        description: "ID устройства"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_devices')
+              field: id
+      - name: location_id
+        description: "ID локации"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_locations')
+              field: id
+      - name: final_dq_score
+        description: "Финальный Data Quality score (0-1)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.8
+              max_value: 1.0
+      - name: daily_total_consumption
+        description: "Общее потребление за день"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: daily_measurement_count
+        description: "Количество измерений за день"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+      - name: daily_avg_power_factor
+        description: "Средний коэффициент мощности за день"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.0
+              max_value: 1.0
+      - name: consumption_level
+        description: "Уровень потребления (low/medium/high/very_high)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['low', 'medium', 'high', 'very_high']
+      - name: data_volatility
+        description: "Волатильность данных (low/medium/high)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['low', 'medium', 'high']
+      - name: power_efficiency_rating
+        description: "Рейтинг эффективности (excellent/good/fair/poor)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['excellent', 'good', 'fair', 'poor']
+
+  - name: int_energy_consumption_regional
+    description: "Промежуточная модель для регионального потребления энергии"
+    columns:
+      - name: date_key
+        description: "Дата измерения"
+        tests:
+          - not_null
+          - dbt_utils.is_timestamp
+      - name: region
+        description: "Регион"
+        tests:
+          - not_null
+      - name: city
+        description: "Город"
+        tests:
+          - not_null
+      - name: country
+        description: "Страна"
+        tests:
+          - not_null
+      - name: final_regional_dq_score
+        description: "Финальный региональный Data Quality score (0-1)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.8
+              max_value: 1.0
+      - name: active_devices
+        description: "Количество активных устройств в регионе"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+      - name: active_locations
+        description: "Количество активных локаций в регионе"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+      - name: regional_total_consumption
+        description: "Общее потребление в регионе за день"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: regional_avg_power_factor
+        description: "Средний коэффициент мощности в регионе"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.0
+              max_value: 1.0
+      - name: regional_efficiency_rating
+        description: "Рейтинг эффективности региона (excellent/good/fair/poor)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['excellent', 'good', 'fair', 'poor']
+      - name: regional_consumption_level
+        description: "Уровень потребления региона (low/medium/high/very_high)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['low', 'medium', 'high', 'very_high']
+      - name: regional_volatility
+        description: "Волатильность региона (low/medium/high)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['low', 'medium', 'high']
+      - name: devices_per_location
+        description: "Среднее количество устройств на локацию"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0.0

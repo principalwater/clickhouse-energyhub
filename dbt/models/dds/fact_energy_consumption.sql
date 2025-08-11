@@ -2,7 +2,7 @@
   config(
     materialized='table',
     schema='dds',
-    tags=['dds', 'fact', 'energy_consumption'],
+    tags=['dds', 'fact', 'energy_consumption', 'cluster_optimized'],
     indexes=[
       {'columns': ['timestamp'], 'type': 'minmax'},
       {'columns': ['device_id'], 'type': 'minmax'},

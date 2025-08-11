@@ -19,7 +19,7 @@ locals {
   bi_user_name               = var.bi_user_name
   super_user_password_sha256 = sha256(var.super_user_password)
   bi_user_password_sha256    = sha256(var.bi_user_password)
-  cluster_name               = "dwh_test"
+  cluster_name               = "dwh_prod"
 
   keeper_nodes = [
     { name = "clickhouse-keeper-01", id = 1, host = "clickhouse-keeper-01", tcp_port = 9181, raft_port = 9234 },

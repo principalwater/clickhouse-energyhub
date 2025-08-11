@@ -248,3 +248,186 @@ macros:
     returns:
       type: string
       description: "SQL для стратегии upsert"
+
+  - name: clickhouse_cluster_name
+    description: "Возвращает имя кластера ClickHouse"
+    returns:
+      type: string
+      description: "Имя кластера (dwh_prod)"
+
+  - name: clickhouse_replicated_engine
+    description: "Создает ENGINE для ReplicatedMergeTree таблиц с UUID и суффиксом _local"
+    arguments:
+      - name: engine_type
+        type: string
+        description: "Тип движка (по умолчанию MergeTree)"
+        default: "MergeTree"
+      - name: order_by
+        type: string
+        description: "ORDER BY выражение"
+      - name: partition_by
+        type: string
+        description: "PARTITION BY выражение"
+      - name: settings
+        type: string
+        description: "Дополнительные настройки"
+    returns:
+      type: string
+      description: "SQL для ReplicatedMergeTree движка"
+    examples:
+      - description: "Создание ReplicatedMergeTree с _local суффиксом"
+        code: |
+          {{ clickhouse_replicated_engine(
+            engine_type='MergeTree',
+            order_by='id',
+            partition_by='PARTITION BY toYYYYMM(created_at)'
+          ) }}
+        result: |
+          ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/otus_default/table_name_local/{uuid}', '{replica}')
+          ORDER BY id
+          PARTITION BY toYYYYMM(created_at)
+
+  - name: clickhouse_distributed_engine
+    description: "Создает ENGINE для Distributed таблиц, ссылающихся на _local таблицы"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы (без _local суффикса)"
+      - name: sharding_key
+        type: string
+        description: "Ключ шардирования"
+      - name: policy
+        type: string
+        description: "Политика распределения"
+    returns:
+      type: string
+      description: "SQL для Distributed движка"
+    examples:
+      - description: "Создание Distributed таблицы"
+        code: |
+          {{ clickhouse_distributed_engine('dim_locations', 'cityHash64(location_id)') }}
+        result: |
+          ENGINE = Distributed(dwh_prod, otus_default, dim_locations_local, cityHash64(location_id))
+
+  - name: create_replicated_table
+    description: "Создание ReplicatedMergeTree таблицы на кластере с суффиксом _local"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы (будет добавлен суффикс _local)"
+      - name: columns
+        type: list
+        description: "Список колонок таблицы"
+      - name: engine_type
+        type: string
+        description: "Тип движка"
+        default: "MergeTree"
+      - name: order_by
+        type: string
+        description: "ORDER BY выражение"
+      - name: partition_by
+        type: string
+        description: "PARTITION BY выражение"
+      - name: settings
+        type: string
+        description: "Дополнительные настройки"
+    returns:
+      type: string
+      description: "SQL для создания ReplicatedMergeTree таблицы"
+    examples:
+      - description: "Создание таблицы с _local суффиксом"
+        code: |
+          {{ create_replicated_table(
+            'dim_locations',
+            columns=[{'name': 'id', 'type': 'UInt32'}, {'name': 'name', 'type': 'String'}],
+            order_by='id'
+          ) }}
+        result: |
+          CREATE TABLE IF NOT EXISTS dim_locations_local ON CLUSTER dwh_prod (
+            id UInt32,
+            name String
+          ) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/otus_default/dim_locations_local/{uuid}', '{replica}')
+          ORDER BY id
+
+  - name: create_distributed_table
+    description: "Создание Distributed таблицы, ссылающейся на _local таблицу"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя Distributed таблицы (без _local)"
+      - name: source_table
+        type: string
+        description: "Имя исходной таблицы (без _local)"
+      - name: sharding_key
+        type: string
+        description: "Ключ шардирования"
+      - name: policy
+        type: string
+        description: "Политика распределения"
+    returns:
+      type: string
+      description: "SQL для создания Distributed таблицы"
+    examples:
+      - description: "Создание Distributed таблицы"
+        code: |
+          {{ create_distributed_table('dim_locations', 'dim_locations', 'cityHash64(id)') }}
+        result: |
+          CREATE TABLE IF NOT EXISTS dim_locations ON CLUSTER dwh_prod AS dim_locations_local
+          ENGINE = Distributed(dwh_prod, otus_default, dim_locations_local, cityHash64(id))
+
+  - name: clickhouse_cluster_insert_strategy
+    description: "Стратегия вставки для кластерных таблиц (использует _local таблицы)"
+    returns:
+      type: string
+      description: "SQL стратегия для вставки"
+
+  - name: clickhouse_cluster_select_strategy
+    description: "Стратегия выборки для кластерных таблиц (использует Distributed таблицы)"
+    returns:
+      type: string
+      description: "SQL стратегия для выборки"
+
+  - name: clickhouse_cluster_materialization_strategy
+    description: "Стратегия материализации для кластерных таблиц"
+    returns:
+      type: string
+      description: "SQL стратегия для материализации"
+
+  - name: clickhouse_cluster_alter_table
+    description: "ALTER операция для кластерных таблиц с поддержкой ON CLUSTER"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы (с _local суффиксом для ReplicatedMergeTree)"
+      - name: operation
+        type: string
+        description: "Тип операции ALTER"
+      - name: parameters
+        type: string
+        description: "Параметры операции"
+    returns:
+      type: string
+      description: "SQL для ALTER операции"
+
+  - name: clickhouse_cluster_drop_table
+    description: "DROP операция для кластерных таблиц с поддержкой ON CLUSTER"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы для удаления"
+    returns:
+      type: string
+      description: "SQL для DROP операции"
+
+  - name: clickhouse_cluster_delete_from
+    description: "DELETE операция для кластерных таблиц с поддержкой ON CLUSTER"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы (с _local суффиксом)"
+      - name: where_condition
+        type: string
+        description: "Условие WHERE для удаления"
+    returns:
+      type: string
+      description: "SQL для DELETE операции"
