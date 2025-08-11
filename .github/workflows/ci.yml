@@ -22,14 +22,23 @@ jobs:
       MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
       MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
       REMOTE_SSH_USER: ${{ secrets.REMOTE_SSH_USER }}
-      # BI Infra Secrets
+      
+      # PostgreSQL Secrets (централизованная БД)
       PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
       SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
       SUPERSET_SECRET_KEY: ${{ secrets.SUPERSET_SECRET_KEY }}
+      
+      # Apache Airflow 3.0.4 Secrets (новые)
+      AIRFLOW_POSTGRES_PASSWORD: ${{ secrets.AIRFLOW_POSTGRES_PASSWORD }}
+      AIRFLOW_ADMIN_PASSWORD: ${{ secrets.AIRFLOW_ADMIN_PASSWORD }}
+      AIRFLOW_FERNET_KEY: ${{ secrets.AIRFLOW_FERNET_KEY }}
+      AIRFLOW_WEBSERVER_SECRET_KEY: ${{ secrets.AIRFLOW_WEBSERVER_SECRET_KEY }}
+      
       # Kafka Secrets
       KAFKA_ADMIN_PASSWORD: ${{ secrets.KAFKA_ADMIN_PASSWORD }}
       KAFKA_SSL_KEYSTORE_PASSWORD: ${{ secrets.KAFKA_SSL_KEYSTORE_PASSWORD }}
-      # Set storage_type at the job level to make it available for the 'if' condition in steps
+      
+      # Set storage_type for CI context
       storage_type: local_storage
     steps:
       - name: Checkout repository
