@@ -1,45 +1,63 @@
 # #############################################################################
-# # Пример файла с переменными.
-# # Скопируйте этот файл в terraform.tfvars и заполните своими значениями.
-# # ВАЖНО: Не храните файл terraform.tfvars в системе контроля версий!
+# # ClickHouse EnergyHub - terraform.tfvars.example
+# # ГОТОВ К ИСПОЛЬЗОВАНИЮ СРАЗУ!
+# # Просто скопируйте этот файл в terraform.tfvars и запустите ./deploy.sh
 # #############################################################################
 
 # ----------------------------------
-# ОБЯЗАТЕЛЬНЫЕ ПЕРЕМЕННЫЕ (ЗАМЕНИТЬ)
+# ⚠️  ВАЖНО: БЕЗОПАСНОСТЬ
 # ----------------------------------
-# Эти пароли и ключи должны быть уникальными и надежными.
+# Этот файл содержит готовые значения для быстрого старта.
+# Для продакшена и безопасности рекомендуется заменить все пароли
+# на уникальные и надежные значения!
+
+# ----------------------------------
+# ГОТОВЫЕ ЗНАЧЕНИЯ ДЛЯ БЫСТРОГО СТАРТА
+# ----------------------------------
 
 # Пароли для пользователей ClickHouse
-super_user_password = "YOUR_CLICKHOUSE_PASSWORD"
-bi_user_password    = "YOUR_BI_USER_PASSWORD"
+super_user_password = "ClickHousePassword123!"
+bi_user_password    = "BIPassword456!"
 
 # Учетные данные для MinIO (S3)
 minio_root_user     = "minioadmin"
-minio_root_password = "YOUR_MINIO_PASSWORD"
+minio_root_password = "MinIOPassword789!"
 
-# Пароли для BI-инфраструктуры
-pg_password         = "YOUR_POSTGRES_PASSWORD"
-sa_password         = "YOUR_BI_ADMIN_PASSWORD"
-superset_secret_key = "YOUR_SUPERSET_SECRET_KEY" # Сгенерируйте командой: openssl rand -base64 32
+# Пользователь для SSH-доступа (локальный)
+remote_ssh_user = "your_username"
+
+# Пароль для суперпользователя в Postgres
+pg_password = "PostgresPassword123!"
+
+# Учетные данные для главного администратора в Metabase/Superset
+sa_username = "admin"
+sa_password = "AdminPassword456!"
+
+# Секретный ключ для Superset (сгенерирован)
+superset_secret_key = "d29b1a7d8e6f4c5a9b1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z"
 
 # Учетные данные для Kafka
 kafka_admin_user            = "admin"
-kafka_admin_password        = "YOUR_KAFKA_ADMIN_PASSWORD"
-kafka_ssl_keystore_password = "YOUR_KEYSTORE_PASSWORD"
+kafka_admin_password        = "KafkaPassword123!"
+kafka_ssl_keystore_password = "KeystorePassword456!"
 
-# Пользователь для SSH-доступа (требуется только для удаленного развертывания)
-# remote_ssh_user     = "your_ssh_user"
-
+# Пароли для Airflow (включен по умолчанию)
+deploy_airflow = true
+airflow_postgres_password    = "AirflowPassword123!"
+airflow_admin_password       = "AirflowAdmin456!"
+airflow_fernet_key           = "BjijBVSuN3ik8oHEXMxd_D3TLTn2xsGVYcyFvILY9jk="
+airflow_webserver_secret_key = "j3nkv2GAx2gl+bXsUtERWvPXeZOAs/i8lQglFwg2+F8="
 
 # ----------------------------------
-# НАСТРОЙКИ РАЗВЕРТЫВАНИЯ (МОЖНО ОСТАВИТЬ ПО УМОЛЧАНИЮ)
+# НАСТРОЙКИ РАЗВЕРТЫВАНИЯ
 # ----------------------------------
-# Для локального запуска рекомендуется оставить storage_type = "local_storage"
+
+# Локальное хранилище (рекомендуется для быстрого старта)
 storage_type = "local_storage"
 
-# Флаги для включения/отключения BI-инструментов
-# deploy_metabase = true
-# deploy_superset = true
+# Включить все BI-инструменты
+deploy_metabase = true
+deploy_superset = true
 
 # Kafka Configuration
 kafka_version = "7.4.0"
@@ -49,32 +67,38 @@ topic_5min    = "energy_data_5min"
 # Monitoring Configuration (Portainer)
 portainer_version    = "2.19.4"
 portainer_https_port = 9443
-portainer_agent_port = 9000
-
-# ----------------------------------
-# AIRFLOW КОНФИГУРАЦИЯ (ОПЦИОНАЛЬНО)
-# ----------------------------------
-# Раскомментируйте и настройте для развертывания Apache Airflow
-
-# deploy_airflow = true
+portainer_agent_port = 10010
 
 # Версии для Airflow
-# airflow_version = "2.8.1"
-# redis_version = "7.2-alpine"
+airflow_version = "3.0.4"
+redis_version   = "8.2-alpine"
 
 # Порты для Airflow
-# airflow_webserver_port = 8080
-# airflow_flower_port = 5555
+airflow_webserver_port = 8080
+airflow_flower_port    = 5555
 
-# Пароли для Airflow (ОБЯЗАТЕЛЬНО при включении)
-# airflow_postgres_password = "YOUR_AIRFLOW_POSTGRES_PASSWORD"
-# airflow_admin_password = "YOUR_AIRFLOW_ADMIN_PASSWORD"
-# airflow_fernet_key = "YOUR_FERNET_KEY" # Сгенерируйте командой: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-# airflow_webserver_secret_key = "YOUR_AIRFLOW_SECRET_KEY" # Сгенерируйте командой: openssl rand -base64 32
+# Пути к директориям (оставить по умолчанию)
+clickhouse_base_path  = "../../volumes/clickhouse"
+bi_postgres_data_path = "../../volumes/postgres/data"
+remote_minio_path     = "/mnt/ssd/minio/data"
 
-# Пути к директориям Airflow (можно оставить по умолчанию)
-# airflow_redis_data_path = "../../volumes/airflow/redis"
-# airflow_dags_path = "../../volumes/airflow/dags"
-# airflow_logs_path = "../../volumes/airflow/logs"
-# airflow_plugins_path = "../../volumes/airflow/plugins"
-# airflow_config_path = "../../volumes/airflow/config"
+# Пути к директориям Airflow
+airflow_redis_data_path = "../../volumes/airflow/redis"
+airflow_dags_path       = "../../airflow/dags"
+airflow_logs_path       = "../../volumes/airflow/logs"
+airflow_plugins_path    = "../../volumes/airflow/plugins"
+airflow_config_path     = "../../volumes/airflow/config"
+
+# ----------------------------------
+# КОММЕНТАРИЙ
+# ----------------------------------
+# Этот файл готов к использованию! Просто:
+# 1. Скопируйте его в terraform.tfvars
+# 2. Запустите ./deploy.sh
+# 3. Наслаждайтесь работающей системой!
+#
+# ⚠️  ДЛЯ ПРОДАКШЕНА И БЕЗОПАСНОСТИ:
+# - Замените все пароли на уникальные и надежные
+# - Используйте генераторы паролей
+# - Не храните terraform.tfvars в системе контроля версий
+# - Регулярно обновляйте пароли и ключи

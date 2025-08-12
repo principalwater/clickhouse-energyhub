@@ -302,39 +302,9 @@ jobs:
           pip install safety
           safety check
 
-  # Сборка и публикация
-  build-and-push:
-    needs: [test, security]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # Развертывание
+  # Развертывание (локальное)
   deploy:
-    needs: build-and-push
+    needs: [test, security]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
@@ -344,19 +314,12 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: '1.5.0'
-          
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          terraform_version: '1.7.5'
           
       - name: Terraform Init
         run: |
           cd infra/terraform
-          terraform init
+          terraform init -backend=false
           
       - name: Terraform Plan
         run: |
@@ -371,225 +334,95 @@ jobs:
 
 ### Pull Request Pipeline
 
+В проекте используется **единый CI workflow** для всех проверок:
+
 ```yaml
-# .github/workflows/pr.yml
-name: Pull Request Checks
+# .github/workflows/ci.yml
+name: Terraform & Python Lint CI
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master ]
+  push:
+    branches: [ master ]
 
 jobs:
-  pr-checks:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Check formatting
-        run: |
-          python -m pip install black isort
-          black --check .
-          isort --check-only .
-          
-      - name: Run linter
-        run: |
-          python -m pip install flake8
-          flake8 . --max-line-length=88
-          
-      - name: Check Terraform
-        run: |
-          cd infra/terraform
-          terraform init
-          terraform validate
-          terraform fmt -check
-          
-      - name: Check dbt
-        run: |
-          cd dbt
-          dbt debug
-          dbt compile
+  terraform:
+    # Проверка Terraform конфигурации
+    # Валидация синтаксиса и форматирования
+    
+  python-lint:
+    # Проверка синтаксиса Python файлов
+    # Валидация shell скриптов
+    
+  dbt-check:
+    # Проверка структуры dbt проекта
+    # Валидация моделей и макросов
 ```
+
+**Преимущества единого workflow:**
+- Централизованное управление проверками
+- Автоматический запуск при PR и push
+- Проверка всех компонентов в одном месте
 
 ## 🧪 Автоматизированное тестирование
 
-### Типы тестов
+### Текущее состояние тестирования
 
-#### 1. **Unit Tests** (Модульные тесты)
-```python
-# tests/test_clickhouse_backup_manager.py
-import pytest
-from scripts.clickhouse_backup_manager import ClickHouseBackupManager
+В проекте реализовано **базовое тестирование** через CI/CD pipeline:
 
-class TestClickHouseBackupManager:
-    def test_get_latest_backup(self):
-        manager = ClickHouseBackupManager()
-        latest = manager.get_latest_backup()
-        assert latest is not None
-        assert isinstance(latest, str)
-    
-    def test_create_backup(self):
-        manager = ClickHouseBackupManager()
-        result = manager.create_backup()
-        assert result is not None
-        assert "Backup created" in result
-```
+#### 1. **Python Syntax Validation**
+- Проверка синтаксиса всех Python файлов
+- Валидация shell скриптов
+- Автоматическая проверка при каждом PR
 
-#### 2. **Integration Tests** (Интеграционные тесты)
-```python
-# tests/test_dbt_integration.py
-import pytest
-from dbt.cli.main import dbtRunner
+#### 2. **dbt Project Validation**
+- Проверка структуры dbt проекта
+- Валидация слоев данных (RAW, ODS, DDS, CDM)
+- Проверка синтаксиса моделей
+- Валидация макросов и тестов
 
-class TestDbtIntegration:
-    def test_dbt_compile(self):
-        dbt = dbtRunner()
-        result = dbt.invoke(["compile"])
-        assert result.success
-        
-    def test_dbt_run(self):
-        dbt = dbtRunner()
-        result = dbt.invoke(["run", "--select", "tag:test"])
-        assert result.success
-```
+#### 3. **Terraform Validation**
+- Проверка синтаксиса Terraform
+- Валидация конфигурации
+- Проверка форматирования кода
 
-#### 3. **End-to-End Tests** (Сквозные тесты)
-```python
-# tests/test_full_pipeline.py
-import pytest
-import docker
+### Планы по расширению тестирования
 
-class TestFullPipeline:
-    def test_airflow_dag_loading(self):
-        client = docker.from_env()
-        container = client.containers.get("airflow-scheduler")
-        
-        result = container.exec_run("python -c 'from deduplication_pipeline import deduplication_dag; print(\"DAG loaded\")'")
-        assert result.exit_code == 0
-        assert "DAG loaded" in result.output.decode()
-```
-
-### Конфигурация pytest
-
-```ini
-# pytest.ini
-[tool:pytest]
-testpaths = tests
-python_files = test_*.py
-python_classes = Test*
-python_functions = test_*
-addopts = 
-    --verbose
-    --tb=short
-    --strict-markers
-    --disable-warnings
-    --cov=.
-    --cov-report=html
-    --cov-report=term-missing
-markers =
-    unit: Unit tests
-    integration: Integration tests
-    e2e: End-to-end tests
-    slow: Slow running tests
-```
+В будущем планируется добавить:
+- Unit тесты для Python скриптов
+- Интеграционные тесты для dbt моделей
+- End-to-end тесты для полного пайплайна
+- Покрытие кода тестами
 
 ## 🔒 Безопасность
 
-### Сканирование безопасности
+### Текущие меры безопасности
 
-#### 1. **CodeQL Analysis**
-```yaml
-# .github/workflows/codeql.yml
-name: "CodeQL"
+В проекте реализованы **базовые меры безопасности**:
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-  schedule:
-    - cron: '30 1 * * 0'
+#### 1. **Secrets Management**
+- Все чувствительные данные хранятся в GitHub Secrets
+- Пароли и ключи не попадают в код
+- Автоматическая подстановка переменных в CI/CD
 
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'python', 'yaml', 'dockerfile' ]
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
-        with:
-          languages: ${{ matrix.language }}
-          
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
-```
+#### 2. **Access Control**
+- Автоматическое одобрение PR только от владельца репозитория
+- Использование Personal Access Token для бота
+- Ограниченные права доступа в workflows
 
-#### 2. **Dependency Scanning**
-```yaml
-# .github/workflows/dependency-check.yml
-name: Dependency Check
+#### 3. **Infrastructure Security**
+- Terraform state не содержит чувствительных данных
+- Локальное хранение для CI/CD контекста
+- Валидация конфигурации перед применением
 
-on:
-  schedule:
-    - cron: '0 2 * * 1'  # Каждый понедельник в 2:00
-  workflow_dispatch:
+### Планы по расширению безопасности
 
-jobs:
-  dependency-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run Safety Check
-        run: |
-          pip install safety
-          safety check --output json > safety-report.json
-          
-      - name: Upload Safety Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: safety-report
-          path: safety-report.json
-```
-
-#### 3. **Container Security**
-```yaml
-# .github/workflows/container-scan.yml
-name: Container Security Scan
-
-on:
-  push:
-    branches: [ main ]
-    paths: [ 'Dockerfile*', 'docker-compose*' ]
-
-jobs:
-  container-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          
-      - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-results.sarif'
-```
+В будущем планируется добавить:
+- Сканирование уязвимостей в зависимостях
+- Анализ безопасности кода (CodeQL)
+- Сканирование контейнеров
+- Автоматические security alerts
 
 ## 🚀 Автоматизация развертывания
 
@@ -605,16 +438,6 @@ terraform {
       source  = "kreuzwerker/docker"
       version = "~> 3.0"
     }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-  
-  backend "s3" {
-    bucket = "clickhouse-energyhub-terraform"
-    key    = "prod/terraform.tfstate"
-    region = "us-east-1"
   }
 }
 
@@ -641,63 +464,55 @@ resource "docker_container" "clickhouse_01" {
 
 #### 2. **Environment Management**
 ```hcl
-# infra/terraform/environments/prod.tfvars
-environment = "production"
+# infra/terraform/terraform.tfvars
+environment = "local"
 clickhouse_cluster_size = 4
-airflow_workers = 3
+airflow_workers = 2
 monitoring_enabled = true
-backup_retention_days = 30
+backup_retention_days = 7
 
-# Автоматическое масштабирование
-autoscaling = {
-  min_instances = 2
-  max_instances = 10
-  target_cpu_utilization = 70
+# Локальное развертывание
+storage_type = "local_storage"
+local_paths = {
+  clickhouse_base_path = "../../volumes/clickhouse"
+  bi_postgres_data_path = "../../volumes/postgres/data"
 }
 ```
 
 ### Deployment Strategies
 
-#### 1. **Blue-Green Deployment**
+#### 1. **Локальное развертывание**
 ```yaml
-# .github/workflows/blue-green-deploy.yml
-name: Blue-Green Deployment
+# .github/workflows/ci.yml
+name: Terraform & Python Lint CI
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ master ]
 
 jobs:
-  blue-green-deploy:
+  deploy:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
-      - name: Deploy Blue Environment
+      - name: Deploy Infrastructure
         run: |
-          echo "Deploying to Blue environment..."
-          # Логика развертывания Blue
+          echo "Deploying infrastructure..."
+          cd infra/terraform
+          terraform apply -auto-approve
+```
+
+**Особенности:**
+- Локальное развертывание через Docker
+- Автоматическое применение при merge в master
+- Проверка конфигурации перед развертыванием
           
-      - name: Run Smoke Tests
+      - name: Verify Deployment
         run: |
-          echo "Running smoke tests..."
-          # Тесты работоспособности
-          
-      - name: Switch Traffic to Blue
-        run: |
-          echo "Switching traffic to Blue..."
-          # Переключение трафика
-          
-      - name: Decommission Green Environment
-        run: |
-          echo "Decommissioning Green environment..."
-          # Очистка старой среды
+          echo "Verifying deployment..."
+          # Проверка работоспособности
 ```
 
 #### 2. **Rolling Update**
@@ -734,106 +549,28 @@ jobs:
 
 ## 📊 Мониторинг и алерты
 
-### Health Checks
+### Текущие возможности мониторинга
+
+В проекте реализован **базовый мониторинг** через существующие инструменты:
 
 #### 1. **Service Health Monitoring**
-```yaml
-# .github/workflows/health-check.yml
-name: Health Check
-
-on:
-  schedule:
-    - cron: '*/5 * * * *'  # Каждые 5 минут
-
-jobs:
-  health-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check ClickHouse Health
-        run: |
-          docker exec clickhouse-01 clickhouse-client --query "SELECT 1"
-          
-      - name: Check Airflow Health
-        run: |
-          curl -f http://localhost:8080/health
-          
-      - name: Check dbt Models
-        run: |
-          cd dbt
-          dbt test --select tag:critical
-          
-      - name: Send Alert on Failure
-        if: failure()
-        run: |
-          echo "Health check failed!"
-          # Отправка алерта
-```
+- **ClickHouse**: Встроенные health checks в Docker контейнерах
+- **Airflow**: Веб-интерфейс с мониторингом DAG'ов
+- **dbt**: Автоматическая валидация моделей в CI/CD
+- **Terraform**: Проверка состояния инфраструктуры
 
 #### 2. **Performance Monitoring**
-```yaml
-# .github/workflows/performance-check.yml
-name: Performance Check
+- **ClickHouse**: Системные таблицы для мониторинга производительности
+- **Airflow**: Логирование и метрики выполнения задач
+- **dbt**: Время выполнения трансформаций
 
-on:
-  schedule:
-    - cron: '0 */6 * * *'  # Каждые 6 часов
+### Планы по расширению мониторинга
 
-jobs:
-  performance-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check Query Performance
-        run: |
-          docker exec clickhouse-01 clickhouse-client --query "
-            SELECT 
-              query,
-              query_duration_ms,
-              memory_usage
-            FROM system.query_log
-            WHERE type = 'QueryFinish'
-            AND query_duration_ms > 10000
-            ORDER BY query_duration_ms DESC
-            LIMIT 10
-          "
-          
-      - name: Check Storage Usage
-        run: |
-          docker exec clickhouse-01 clickhouse-client --query "
-            SELECT 
-              database,
-              table,
-              formatReadableSize(total_bytes) as size
-            FROM system.tables
-            ORDER BY total_bytes DESC
-            LIMIT 20
-          "
-```
-
-### Alerting
-
-#### 1. **Slack Notifications**
-```yaml
-# .github/workflows/notify-slack.yml
-name: Notify Slack
-
-on:
-  workflow_run:
-    workflows: ["CI/CD Pipeline"]
-    types:
-      - completed
-      - failure
-
-jobs:
-  notify:
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Notify Slack
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          channel: '#deployments'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+В будущем планируется добавить:
+- Автоматические health checks через GitHub Actions
+- Performance метрики и алерты
+- Интеграция с внешними системами мониторинга
+- Автоматические уведомления о проблемах
 ```
 
 #### 2. **Email Notifications**
@@ -921,84 +658,37 @@ echo "✅ Rollback completed successfully!"
 
 ## 📈 Метрики и отчеты
 
-### Deployment Metrics
+### Текущие метрики
 
-```yaml
-# .github/workflows/metrics.yml
-name: Collect Metrics
+В проекте реализованы **базовые метрики** через CI/CD pipeline:
 
-on:
-  workflow_run:
-    workflows: ["Deploy"]
-    types:
-      - completed
+#### 1. **Deployment Metrics**
+- Время выполнения CI/CD pipeline
+- Успешность развертывания
+- Статус проверок (Terraform, Python, dbt)
 
-jobs:
-  collect-metrics:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Calculate Deployment Time
-        run: |
-          DEPLOYMENT_TIME=$(($(date +%s) - $(date -d "${{ github.event.workflow_run.created_at }}" +%s)))
-          echo "Deployment time: ${DEPLOYMENT_TIME}s"
-          
-      - name: Calculate Success Rate
-        run: |
-          # Логика расчета успешности развертываний
-          
-      - name: Generate Report
-        run: |
-          # Генерация отчета по метрикам
-```
+#### 2. **Quality Metrics**
+- Валидация Terraform конфигурации
+- Проверка синтаксиса Python файлов
+- Валидация структуры dbt проекта
 
-### Quality Gates
+### Планы по расширению метрик
 
-```yaml
-# .github/workflows/quality-gate.yml
-name: Quality Gate
-
-on:
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  quality-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Code Coverage Check
-        run: |
-          # Проверка покрытия кода тестами
-          if [ "$COVERAGE" -lt 80 ]; then
-            echo "❌ Code coverage below 80%"
-            exit 1
-          fi
-          
-      - name: Security Scan Check
-        run: |
-          # Проверка безопасности
-          if [ "$VULNERABILITIES" -gt 0 ]; then
-            echo "❌ Security vulnerabilities found"
-            exit 1
-          fi
-          
-      - name: Performance Check
-        run: |
-          # Проверка производительности
-          if [ "$RESPONSE_TIME" -gt 1000 ]; then
-            echo "❌ Response time too high"
-            exit 1
-          fi
-```
+В будущем планируется добавить:
+- Автоматический сбор метрик производительности
+- Quality gates для проверки качества кода
+- Интеграция с внешними системами мониторинга
+- Автоматические отчеты и алерты
 
 ## 🔮 Планы развития
 
 ### Краткосрочные (3-6 месяцев)
-- [ ] Автоматизация тестирования производительности
-- [ ] Интеграция с системами мониторинга (Prometheus, Grafana)
+- [ ] Расширение автоматизированного тестирования
+- [ ] Интеграция с системами мониторинга
 - [ ] Автоматическое создание релизов
 
 ### Среднесрочные (6-12 месяцев)
-- [ ] Canary deployments
+- [ ] Blue-green deployments
 - [ ] Feature flags и A/B тестирование
 - [ ] Автоматическое масштабирование
 

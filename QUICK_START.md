@@ -52,24 +52,49 @@ cd infra/terraform
 
 # Создаем файл с переменными (скопируйте пример)
 cp terraform.tfvars.example terraform.tfvars
-
-# Редактируем файл (замените значения на свои)
-nano terraform.tfvars
 ```
 
-**Пример содержимого `terraform.tfvars`:**
+**🎯 Для быстрого старта (рекомендуется для тестирования):**
+Файл `terraform.tfvars.example` уже содержит готовые значения и готов к использованию! Просто скопируйте его и запускайте `deploy.sh`.
+
+**🔒 Для продакшена и безопасности:**
+Рекомендуется заменить все пароли на уникальные и надежные значения перед развертыванием.
+
+**Пример содержимого `terraform.tfvars` (готовые значения):**
 
 ```hcl
-# Учетные данные суперпользователя
-super_user_name = "admin"
-super_user_password = "your_secure_password"
+# Пароли для пользователей ClickHouse
+super_user_password = "ClickHousePassword123!"
+bi_user_password    = "BIPassword456!"
 
-# Настройки ClickHouse
-clickhouse_version = "23.8"
-clickhouse_cluster_size = 4
+# Учетные данные для MinIO (S3)
+minio_root_user     = "minioadmin"
+minio_root_password = "MinIOPassword789!"
 
-# Настройки Airflow
-airflow_version = "2.7.1"
+# Пользователь для SSH-доступа (локальный)
+remote_ssh_user = "your_username"
+
+# Пароль для суперпользователя в Postgres
+pg_password = "PostgresPassword123!"
+
+# Учетные данные для главного администратора в Metabase/Superset
+sa_username = "admin"
+sa_password = "AdminPassword456!"
+
+# Секретный ключ для Superset (сгенерирован)
+superset_secret_key = "d29b1a7d8e6f4c5a9b1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z"
+
+# Учетные данные для Kafka
+kafka_admin_user            = "admin"
+kafka_admin_password        = "KafkaPassword123!"
+kafka_ssl_keystore_password = "KeystorePassword456!"
+
+# Пароли для Airflow (включен по умолчанию)
+deploy_airflow = true
+airflow_postgres_password    = "AirflowPassword123!"
+airflow_admin_password       = "AirflowAdmin456!"
+airflow_fernet_key           = "BjijBVSuN3ik8oHEXMxd_D3TLTn2xsGVYcyFvILY9jk="
+airflow_webserver_secret_key = "j3nkv2GAx2gl+bXsUtERWvPXeZOAs/i8lQglFwg2+F8="
 ```
 
 ## 🚀 Шаг 3: Запуск развертывания
