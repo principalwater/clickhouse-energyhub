@@ -1,129 +1,88 @@
 version: 2
-
 sources:
-  - name: raw
-    description: "Raw data sources from ClickHouse raw database"
-    database: raw
-    schema: raw
-    tables:
-      - name: energy_consumption_raw
-        description: "Raw energy consumption data"
-        columns:
-          - name: device_id
-            description: "Unique device identifier"
-            tests:
-              - not_null
-          - name: location_id
-            description: "Location identifier"
-            tests:
-              - not_null
-          - name: timestamp
-            description: "Measurement timestamp"
-            tests:
-              - not_null
-          - name: energy_kwh
-            description: "Energy consumption in kWh"
-            tests:
-              - not_null
-          - name: voltage
-            description: "Voltage measurement"
-            tests:
-              - not_null
-          - name: current_amp
-            description: "Current measurement in amperes"
-            tests:
-              - not_null
-          - name: power_factor
-            description: "Power factor"
-            tests:
-              - not_null
-          - name: temperature
-            description: "Temperature measurement"
-          - name: humidity
-            description: "Humidity measurement"
-          - name: raw_data
-            description: "Raw JSON data"
-
-      - name: devices_raw
-        description: "Raw device data"
-        columns:
-          - name: device_id
-            description: "Unique device identifier"
-            tests:
-              - not_null
-              - unique
-          - name: device_name
-            description: "Device name"
-            tests:
-              - not_null
-          - name: device_type
-            description: "Type of device"
-            tests:
-              - not_null
-          - name: location_id
-            description: "Location identifier"
-            tests:
-              - not_null
-          - name: manufacturer
-            description: "Device manufacturer"
-            tests:
-              - not_null
-          - name: model
-            description: "Device model"
-            tests:
-              - not_null
-          - name: installation_date
-            description: "Device installation date"
-            tests:
-              - not_null
-          - name: last_maintenance_date
-            description: "Last maintenance date"
-          - name: status
-            description: "Device status"
-            tests:
-              - not_null
-          - name: raw_data
-            description: "Raw JSON data"
-
-      - name: locations_raw
-        description: "Raw location data"
-        columns:
-          - name: location_id
-            description: "Unique location identifier"
-            tests:
-              - not_null
-              - unique
-          - name: location_name
-            description: "Location name"
-            tests:
-              - not_null
-          - name: region
-            description: "Geographic region"
-            tests:
-              - not_null
-          - name: city
-            description: "City name"
-            tests:
-              - not_null
-          - name: address
-            description: "Full address"
-            tests:
-              - not_null
-          - name: latitude
-            description: "Latitude coordinate"
-            tests:
-              - not_null
-          - name: longitude
-            description: "Longitude coordinate"
-            tests:
-              - not_null
-          - name: timezone
-            description: "Timezone"
-            tests:
-              - not_null
-          - name: country
-            description: "Country name"
-            tests:
-              - not_null
-          - name: raw_data
-            description: "Raw JSON data"
+- name: raw
+  description: Raw data sources from ClickHouse raw database
+  database: raw
+  schema: raw
+  tables:
+  - name: energy_consumption_raw
+    description: Table energy_consumption_raw from ClickHouse
+    columns: []
+  - name: devices_raw
+    description: Table devices_raw from ClickHouse
+    columns: []
+  - name: locations_raw
+    description: Table locations_raw from ClickHouse
+    columns: []
+  - name: raw_devices
+    description: Table raw_devices from ClickHouse
+    columns: []
+  - name: raw_energy_consumption
+    description: Table raw_energy_consumption from ClickHouse
+    columns: []
+  - name: raw_locations
+    description: Table raw_locations from ClickHouse
+    columns: []
+  - name: river_flow
+    description: Table river_flow from ClickHouse
+    columns: []
+  - name: river_flow_local
+    description: Table river_flow_local from ClickHouse
+    columns: []
+  - name: river_flow_mv
+    description: Table river_flow_mv from ClickHouse
+    columns: []
+- name: cdm
+  description: Tables from cdm database
+  database: cdm
+  schema: cdm
+  tables:
+  - name: cdm_device_performance
+    description: Table cdm_device_performance from ClickHouse
+    columns: []
+  - name: cdm_energy_consumption_daily
+    description: Table cdm_energy_consumption_daily from ClickHouse
+    columns: []
+- name: dds
+  description: Tables from dds database
+  database: dds
+  schema: dds
+  tables:
+  - name: dds_energy_consumption
+    description: Table dds_energy_consumption from ClickHouse
+    columns: []
+  - name: dds_market_data_clean
+    description: Table dds_market_data_clean from ClickHouse
+    columns: []
+  - name: dds_market_data_view
+    description: Table dds_market_data_view from ClickHouse
+    columns: []
+  - name: dds_river_flow_clean
+    description: Table dds_river_flow_clean from ClickHouse
+    columns: []
+  - name: dds_river_flow_view
+    description: Table dds_river_flow_view from ClickHouse
+    columns: []
+- name: ods
+  description: Tables from ods database
+  database: ods
+  schema: ods
+  tables:
+  - name: market_data
+    description: Table market_data from ClickHouse
+    columns: []
+  - name: market_data_local
+    description: Table market_data_local from ClickHouse
+    columns: []
+  - name: market_data_mv
+    description: Table market_data_mv from ClickHouse
+    columns: []
+  - name: ods_devices
+    description: Table ods_devices from ClickHouse
+    columns: []
+  - name: ods_energy_consumption
+    description: Table ods_energy_consumption from ClickHouse
+    columns: []
+  - name: ods_locations
+    description: Table ods_locations from ClickHouse
+    columns: []

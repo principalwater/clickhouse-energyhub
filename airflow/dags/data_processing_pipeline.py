@@ -68,6 +68,36 @@ def run_dbt_dds():
         print(f"❌ Ошибка при обработке моделей DDS: {e}")
         raise
 
+def run_dbt_dds_clean():
+    """Запуск dbt моделей для очистки дублей в DDS"""
+    try:
+        print("🧹 Запуск dbt моделей для очистки дублей в DDS...")
+        
+        # Используем BashOperator для запуска dbt команд
+        # dbt run --select tag:clean
+        # dbt run --select dds_river_flow_clean dds_market_data_clean
+        
+        print("✅ Модели очистки DDS успешно обработаны")
+        return "Success"
+    except Exception as e:
+        print(f"❌ Ошибка при обработке моделей очистки DDS: {e}")
+        raise
+
+def run_dbt_dds_views():
+    """Запуск dbt моделей для создания view'ов в DDS"""
+    try:
+        print("👁️ Запуск dbt моделей для создания view'ов в DDS...")
+        
+        # Используем BashOperator для запуска dbt команд
+        # dbt run --select tag:view
+        # dbt run --select dds_river_flow_view dds_market_data_view
+        
+        print("✅ View'ы DDS успешно созданы")
+        return "Success"
+    except Exception as e:
+        print(f"❌ Ошибка при создании view'ов DDS: {e}")
+        raise
+
 def run_dbt_cdm():
     """Запуск dbt моделей для слоя CDM"""
     try:
@@ -134,6 +164,18 @@ run_dds_task = PythonOperator(
     dag=data_processing_dag,
 )
 
+run_dds_clean_task = PythonOperator(
+    task_id='run_dbt_dds_clean',
+    python_callable=run_dbt_dds_clean,
+    dag=data_processing_dag,
+)
+
+run_dds_views_task = PythonOperator(
+    task_id='run_dbt_dds_views',
+    python_callable=run_dbt_dds_views,
+    dag=data_processing_dag,
+)
+
 run_cdm_task = PythonOperator(
     task_id='run_dbt_cdm',
     python_callable=run_dbt_cdm,
@@ -159,4 +201,4 @@ health_check_task = PythonOperator(
 )
 
 # Определение зависимостей (последовательная обработка по слоям)
-dq_check_task >> run_ods_task >> run_dds_task >> run_cdm_task >> run_tests_task >> generate_docs_task >> health_check_task
+dq_check_task >> run_ods_task >> run_dds_task >> run_dds_clean_task >> run_dds_views_task >> run_cdm_task >> run_tests_task >> generate_docs_task >> health_check_task

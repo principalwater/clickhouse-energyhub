@@ -1,0 +1,76 @@
+version: 2
+
+models:
+  - name: dds_river_flow_clean
+    description: "Очищенные данные river_flow без дублей"
+    columns:
+      - name: ges_name
+        description: "Название ГЭС"
+        tests:
+          - not_null
+          - dbt_utils.not_empty_string
+      
+      - name: timestamp
+        description: "Временная метка"
+        tests:
+          - not_null
+      
+      - name: river_name
+        description: "Название реки"
+        tests:
+          - not_null
+          - dbt_utils.not_empty_string
+      
+      - name: water_level_m
+        description: "Уровень воды в метрах"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000
+      
+      - name: flow_rate_m3_s
+        description: "Расход воды в м³/с"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+      
+      - name: power_output_mw
+        description: "Выработка мощности в МВт"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+
+  - name: dds_market_data_clean
+    description: "Очищенные данные market_data без дублей"
+    columns:
+      - name: timestamp
+        description: "Временная метка"
+        tests:
+          - not_null
+      
+      - name: volume_mwh
+        description: "Объем в МВтч"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100000
+      
+      - name: trading_zone
+        description: "Торговая зона"
+        tests:
+          - not_null
+          - dbt_utils.not_empty_string
+      
+      - name: price_eur_mwh
+        description: "Цена в евро за МВтч"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
