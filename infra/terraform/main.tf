@@ -283,13 +283,10 @@ module "airflow" {
 module "dbt" {
   source = "./modules/dbt"
 
-  providers = {
-    docker = docker
-  }
-
   # Основные настройки dbt
   dbt_project_name = "clickhouse_energyhub"
   dbt_version      = var.dbt_version
+  dbt_core_version = var.dbt_core_version
   dbt_port         = var.dbt_port
   dbt_host         = "localhost"
   dbt_base_path    = var.dbt_base_path

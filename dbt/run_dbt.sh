@@ -1,196 +1,171 @@
 #!/bin/bash
 
-# Скрипт для запуска dbt с различными параметрами
-# ClickHouse EnergyHub
+# dbt runner script for ClickHouse EnergyHub
+# Usage: ./run_dbt.sh <command> [target] [model]
 
 set -e
 
-# Цвета для вывода
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Функция для логирования
-log() {
-    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
+# Default values
+TARGET=${2:-"dev"}
+MODEL=${3:-""}
+
+# Function to print colored output
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-success() {
+print_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-warning() {
+print_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-# Проверка наличия dbt
-check_dbt() {
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check if dbt environment is activated
+check_dbt_env() {
     if ! command -v dbt &> /dev/null; then
-        error "dbt не установлен. Установите dbt-core и dbt-clickhouse"
+        print_error "dbt not found. Please activate the dbt environment first:"
+        echo "source dbt_env/bin/activate"
         exit 1
     fi
-    
-    log "dbt версия: $(dbt --version)"
 }
 
-# Проверка профиля
-check_profile() {
-    if ! dbt debug &> /dev/null; then
-        error "Ошибка конфигурации профиля. Проверьте ~/.dbt/profiles.yml"
+# Check if we're in the right directory
+check_directory() {
+    if [ ! -f "dbt_project.yml" ]; then
+        print_error "dbt_project.yml not found. Please run this script from the dbt directory."
         exit 1
     fi
-    
-    success "Профиль dbt настроен корректно"
 }
 
-# Функция для запуска моделей
-run_models() {
-    local target=${1:-dev}
-    local select=${2:-""}
+# Function to run dbt command
+run_dbt() {
+    local cmd="$1"
+    local target="$2"
+    local model="$3"
     
-    log "Запуск моделей dbt для target: $target"
+    print_info "Running: dbt $cmd --target $target $model"
     
-    if [ -n "$select" ]; then
-        log "Выбор моделей: $select"
-        dbt run --target "$target" --select "$select"
+    if [ -n "$model" ]; then
+        dbt "$cmd" --target "$target" --select "$model"
     else
-        dbt run --target "$target"
-    fi
-    
-    success "Модели dbt успешно выполнены"
-}
-
-# Функция для запуска тестов
-run_tests() {
-    local target=${1:-dev}
-    local select=${2:-""}
-    
-    log "Запуск тестов dbt для target: $target"
-    
-    if [ -n "$select" ]; then
-        log "Выбор тестов: $select"
-        dbt test --target "$target" --select "$select"
-    else
-        dbt test --target "$target"
-    fi
-    
-    success "Тесты dbt успешно выполнены"
-}
-
-# Функция для генерации документации
-generate_docs() {
-    log "Генерация документации dbt"
-    
-    dbt docs generate
-    success "Документация сгенерирована"
-    
-    if [ "$1" = "--serve" ]; then
-        log "Запуск веб-сервера документации на http://localhost:8080"
-        dbt docs serve --port 8080
+        dbt "$cmd" --target "$target"
     fi
 }
 
-# Функция для очистки
-clean_project() {
-    log "Очистка проекта dbt"
-    
-    dbt clean
-    success "Проект очищен"
-}
-
-# Функция для установки зависимостей
-install_deps() {
-    log "Установка зависимостей dbt"
-    
-    dbt deps
-    success "Зависимости установлены"
-}
-
-# Функция для DQ проверок
-run_dq_checks() {
-    local target=${1:-dev}
-    
-    log "Запуск DQ проверок для target: $target"
-    
-    # Запуск моделей с DQ проверками
-    dbt run --target "$target" --select tag:dq_checked
-    
-    # Запуск тестов для DQ
-    dbt test --target "$target" --select tag:dq_checked
-    
-    success "DQ проверки выполнены"
-}
-
-# Функция для показа справки
-show_help() {
-    echo "Использование: $0 [КОМАНДА] [ПАРАМЕТРЫ]"
-    echo ""
-    echo "Команды:"
-    echo "  run [target] [select]     - Запуск моделей"
-    echo "  test [target] [select]    - Запуск тестов"
-    echo "  docs [--serve]            - Генерация документации"
-    echo "  clean                     - Очистка проекта"
-    echo "  deps                      - Установка зависимостей"
-    echo "  dq [target]               - Запуск DQ проверок"
-    echo "  help                      - Показать эту справку"
-    echo ""
-    echo "Примеры:"
-    echo "  $0 run dev                    # Запуск всех моделей в dev"
-    echo "  $0 run prod tag:ods          # Запуск ODS моделей в prod"
-    echo "  $0 test dev stg_locations    # Тест конкретной модели"
-    echo "  $0 dq prod                   # DQ проверки в prod"
-    echo "  $0 docs --serve              # Генерация и запуск документации"
-}
-
-# Основная логика
+# Main script logic
 main() {
-    local command=${1:-help}
+    local command="$1"
+    
+    check_directory
+    check_dbt_env
     
     case $command in
         "run")
-            check_dbt
-            check_profile
-            run_models "${2:-dev}" "${3:-}"
+            print_info "Running dbt models for target: $TARGET"
+            run_dbt "run" "$TARGET" "$MODEL"
+            print_success "dbt run completed successfully!"
             ;;
         "test")
-            check_dbt
-            check_profile
-            run_tests "${2:-dev}" "${3:-}"
+            print_info "Running dbt tests for target: $TARGET"
+            run_dbt "test" "$TARGET" "$MODEL"
+            print_success "dbt tests completed successfully!"
+            ;;
+        "compile")
+            print_info "Compiling dbt models for target: $TARGET"
+            run_dbt "compile" "$TARGET" "$MODEL"
+            print_success "dbt compile completed successfully!"
             ;;
         "docs")
-            check_dbt
-            check_profile
-            generate_docs "$2"
+            if [ "$MODEL" = "--serve" ]; then
+                print_info "Generating and serving dbt documentation"
+                dbt docs generate --target "$TARGET"
+                dbt docs serve --target "$TARGET"
+            else
+                print_info "Generating dbt documentation for target: $TARGET"
+                run_dbt "docs" "$TARGET" "generate"
+                print_success "dbt docs generated successfully!"
+            fi
+            ;;
+        "seed")
+            print_info "Running dbt seed for target: $TARGET"
+            run_dbt "seed" "$TARGET" "$MODEL"
+            print_success "dbt seed completed successfully!"
+            ;;
+        "snapshot")
+            print_info "Running dbt snapshot for target: $TARGET"
+            run_dbt "snapshot" "$TARGET" "$MODEL"
+            print_success "dbt snapshot completed successfully!"
+            ;;
+        "list")
+            print_info "Listing dbt models for target: $TARGET"
+            run_dbt "list" "$TARGET" "$MODEL"
+            ;;
+        "debug")
+            print_info "Running dbt debug for target: $TARGET"
+            run_dbt "debug" "$TARGET"
             ;;
         "clean")
-            check_dbt
-            clean_project
+            print_info "Cleaning dbt artifacts"
+            dbt clean
+            print_success "dbt clean completed successfully!"
             ;;
         "deps")
-            check_dbt
-            install_deps
-            ;;
-        "dq")
-            check_dbt
-            check_profile
-            run_dq_checks "${2:-dev}"
+            print_info "Installing dbt dependencies"
+            dbt deps
+            print_success "dbt deps completed successfully!"
             ;;
         "help"|"--help"|"-h")
-            show_help
+            echo "Usage: $0 <command> [target] [model]"
+            echo ""
+            echo "Commands:"
+            echo "  run       - Run dbt models"
+            echo "  test      - Run dbt tests"
+            echo "  compile   - Compile dbt models"
+            echo "  docs      - Generate dbt documentation"
+            echo "  seed      - Run dbt seed"
+            echo "  snapshot  - Run dbt snapshot"
+            echo "  list      - List dbt models"
+            echo "  debug     - Run dbt debug"
+            echo "  clean     - Clean dbt artifacts"
+            echo "  deps      - Install dbt dependencies"
+            echo "  help      - Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  $0 run dev                    # Run all models in dev"
+            echo "  $0 run prod                   # Run all models in prod"
+            echo "  $0 run dev stg_locations      # Run specific model in dev"
+            echo "  $0 test dev                   # Run all tests in dev"
+            echo "  $0 docs --serve              # Generate and serve docs"
+            echo ""
+            echo "Targets: dev, prod, test"
             ;;
         *)
-            error "Неизвестная команда: $command"
-            show_help
+            print_error "Unknown command: $command"
+            echo "Use '$0 help' for usage information"
             exit 1
             ;;
     esac
 }
 
-# Запуск основной функции
+# Check if command is provided
+if [ $# -eq 0 ]; then
+    print_error "No command provided"
+    echo "Use '$0 help' for usage information"
+    exit 1
+fi
+
+# Run main function
 main "$@"

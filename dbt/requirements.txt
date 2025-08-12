@@ -1,23 +1,26 @@
-# Основные зависимости для dbt модуля
-dbt-core>=1.5.0
-dbt-clickhouse>=1.5.0
+# dbt requirements for ClickHouse EnergyHub
+# Based on official dbt-clickhouse documentation
 
-# Дополнительные пакеты для разработки
-clickhouse-connect>=0.6.0
+# Core dbt
+dbt-core==1.10.7
+
+# ClickHouse adapter
+dbt-clickhouse==1.9.2
+
+# ClickHouse Python driver
+clickhouse-connect>=0.7.0
+
+# Additional utilities
 clickhouse-driver>=0.2.0
-
-# Утилиты для работы с данными
 pandas>=1.5.0
 numpy>=1.21.0
 
-# Логирование и мониторинг
-structlog>=23.0.0
-prometheus-client>=0.16.0
-
-# Тестирование
+# Development tools
 pytest>=7.0.0
-pytest-dbt>=1.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0
 
-# Документация
+# Documentation
 mkdocs>=1.4.0
-mkdocs-material>=9.0.0
+mkdocs-material>=8.0.0

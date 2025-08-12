@@ -1,6 +1,7 @@
 name: 'clickhouse_energyhub'
 version: '1.0.0'
 config-version: 2
+require-dbt-version: ">=1.10.0"
 
 # Описание проекта
 description: "dbt проект для ClickHouse EnergyHub с DQ проверками"
@@ -22,25 +23,18 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
-# Настройки для ClickHouse по слоям
+# Настройки для ClickHouse
 models:
   clickhouse_energyhub:
-    raw:
+    staging:
       +materialized: view
-      +schema: raw
-      +tags: ["raw", "kafka_data"]
-    ods:
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts
+    intermediate:
       +materialized: view
-      +schema: ods
-      +tags: ["ods", "preprocessed", "dq_checked"]
-    dds:
-      +materialized: table
-      +schema: dds
-      +tags: ["dds", "detailed", "business_logic"]
-    data_marts:
-      +materialized: table
-      +schema: data_marts
-      +tags: ["data_marts", "aggregated", "bi_ready"]
+      +schema: intermediate
 
 # Настройки для тестов
 tests:
@@ -49,7 +43,7 @@ tests:
 
 # Настройки для seeds
 seeds:
-  +schema: reference_data
+  +schema: raw_data
 
 # Настройки для snapshots
 snapshots:
@@ -73,9 +67,3 @@ vars:
   # Настройки для мониторинга
   enable_dq_monitoring: true
   dq_alert_email: "admin@energyhub.local"
-  
-  # Настройки по слоям
-  raw_layer_enabled: true
-  ods_layer_enabled: true
-  dds_layer_enabled: true
-  data_marts_layer_enabled: true

@@ -1,6 +1,7 @@
 name: '${project_name}'
 version: '1.0.0'
 config-version: 2
+require-dbt-version: ">=1.10.0"
 
 # Описание проекта
 description: "dbt проект для ClickHouse EnergyHub с DQ проверками"

@@ -1,0 +1,64 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Сырые данные из ClickHouse"
+    database: otus_default
+    schema: raw_data
+    tables:
+      - name: energy_consumption
+        description: "Сырые данные энергопотребления"
+        columns:
+          - name: device_id
+            description: "Уникальный идентификатор устройства"
+            tests:
+              - not_null
+              - unique
+          - name: timestamp
+            description: "Временная метка измерения"
+            tests:
+              - not_null
+              - is_timestamp
+          - name: energy_kwh
+            description: "Потребление энергии в кВт*ч"
+            tests:
+              - not_null
+              - accepted_range:
+                  min_value: 0
+                  max_value: 1000
+          - name: location_id
+            description: "Идентификатор локации"
+            tests:
+              - not_null
+              - relationships:
+                  to: ref('dim_locations')
+                  field: location_id
+          - name: device_type
+            description: "Тип устройства"
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['smart_meter', 'solar_panel', 'battery_storage', 'wind_turbine']
+          - name: voltage_v
+            description: "Напряжение в вольтах"
+            tests:
+              - accepted_range:
+                  min_value: 0
+                  max_value: 1000
+          - name: current_a
+            description: "Ток в амперах"
+            tests:
+              - accepted_range:
+                  min_value: 0
+                  max_value: 1000
+          - name: power_factor
+            description: "Коэффициент мощности"
+            tests:
+              - accepted_range:
+                  min_value: 0
+                  max_value: 1
+          - name: _timestamp
+            description: "Временная метка загрузки данных"
+            tests:
+              - not_null
+              - is_timestamp

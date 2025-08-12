@@ -1,21 +1,8 @@
-terraform {
-  required_providers {
-    docker = {
-      source                = "kreuzwerker/docker"
-      version               = "3.6.1"
-      configuration_aliases = [docker.remote_host]
-    }
-    local = {
-      source  = "hashicorp/local"
-      version = "2.5.3"
-    }
-  }
-}
-
 # --- Locals ---
 locals {
   dbt_project_name = var.dbt_project_name
   dbt_version      = var.dbt_version
+  dbt_core_version = var.dbt_core_version
   dbt_port         = var.dbt_port
   dbt_host         = var.dbt_host
   
@@ -38,13 +25,24 @@ locals {
 # Создание директорий для dbt
 resource "null_resource" "mk_dbt_dirs" {
   provisioner "local-exec" {
-    command = "mkdir -p ${local.dbt_base_path} ${local.dbt_profiles_path} ${local.dbt_logs_path} ${local.dbt_target_path}"
+    command = "mkdir -p ${abspath(local.dbt_base_path)} ${abspath(local.dbt_profiles_path)} ${abspath(local.dbt_logs_path)} ${abspath(local.dbt_target_path)}"
   }
 }
 
-# Docker image для dbt
-resource "docker_image" "dbt_clickhouse" {
-  name = "ghcr.io/dbt-labs/dbt-clickhouse:${local.dbt_version}"
+# Создание базовой структуры моделей
+resource "null_resource" "create_dbt_structure" {
+  provisioner "local-exec" {
+    command = <<-EOT
+      mkdir -p ${abspath(local.dbt_base_path)}/models/{staging,marts,intermediate}
+      mkdir -p ${abspath(local.dbt_base_path)}/macros
+      mkdir -p ${abspath(local.dbt_base_path)}/tests
+      mkdir -p ${abspath(local.dbt_base_path)}/seeds
+      mkdir -p ${abspath(local.dbt_base_path)}/snapshots
+      mkdir -p ${abspath(local.dbt_base_path)}/analysis
+    EOT
+  }
+  
+  depends_on = [null_resource.mk_dbt_dirs]
 }
 
 # Создание dbt_project.yml
@@ -70,54 +68,25 @@ resource "local_file" "profiles_yml" {
   depends_on = [null_resource.mk_dbt_dirs]
 }
 
-# Создание Docker Compose для dbt
-resource "docker_container" "dbt_clickhouse" {
-  name  = "dbt-clickhouse"
-  image = docker_image.dbt_clickhouse.image_id
-  
-  networks_advanced {
-    name = var.clickhouse_network_name
-  }
-  
-  volumes {
-    container_path = "/dbt"
-    host_path     = local.dbt_base_path
-    read_only     = false
-  }
-  
-  volumes {
-    container_path = "/root/.dbt"
-    host_path     = local.dbt_profiles_path
-    read_only     = false
-  }
-  
-  working_dir = "/dbt"
-  command = [
-    "tail", "-f", "/dev/null"  # Keep container running
-  ]
-  
-  depends_on = [
-    local_file.dbt_project_yml,
-    local_file.profiles_yml
-  ]
-  
-  restart = "unless-stopped"
-}
-
-# Создание базовой структуры моделей
-resource "null_resource" "create_dbt_structure" {
+# Создание Python виртуального окружения для dbt
+resource "null_resource" "setup_dbt_environment" {
   provisioner "local-exec" {
     command = <<-EOT
-      mkdir -p ${local.dbt_base_path}/models/{staging,marts,intermediate}
-      mkdir -p ${local.dbt_base_path}/macros
-      mkdir -p ${local.dbt_base_path}/tests
-      mkdir -p ${local.dbt_base_path}/seeds
-      mkdir -p ${local.dbt_base_path}/snapshots
-      mkdir -p ${local.dbt_base_path}/analysis
+      cd ${abspath(local.dbt_base_path)}
+      python3 -m venv dbt_env
+      source dbt_env/bin/activate
+      pip install --upgrade pip
+      pip install dbt-core==${var.dbt_core_version} dbt-clickhouse==${local.dbt_version}
+      pip install clickhouse-connect
+      echo "dbt environment setup completed"
     EOT
   }
   
-  depends_on = [null_resource.mk_dbt_dirs]
+  depends_on = [
+    local_file.dbt_project_yml,
+    local_file.profiles_yml,
+    null_resource.create_dbt_structure
+  ]
 }
 
 # Создание базового макроса для DQ проверок
@@ -142,4 +111,32 @@ resource "local_file" "dbt_readme" {
   })
   filename = "${local.dbt_base_path}/README.md"
   depends_on = [null_resource.create_dbt_structure]
+}
+
+# Создание скрипта активации dbt окружения
+resource "local_file" "activate_dbt_env" {
+  content = <<-EOT
+#!/bin/bash
+# Скрипт для активации dbt окружения
+cd ${abspath(local.dbt_base_path)}
+source dbt_env/bin/activate
+echo "dbt environment activated"
+echo "dbt version: $(dbt --version)"
+echo "Available commands:"
+echo "  dbt run - запуск моделей"
+echo "  dbt test - запуск тестов"
+echo "  dbt docs generate - генерация документации"
+echo "  dbt docs serve - запуск документации"
+EOT
+  filename = "${local.dbt_base_path}/activate_dbt.sh"
+  depends_on = [null_resource.setup_dbt_environment]
+}
+
+# Установка прав на выполнение для скрипта активации
+resource "null_resource" "make_activate_script_executable" {
+  provisioner "local-exec" {
+    command = "chmod +x ${abspath(local.dbt_base_path)}/activate_dbt.sh"
+  }
+  
+  depends_on = [local_file.activate_dbt_env]
 }

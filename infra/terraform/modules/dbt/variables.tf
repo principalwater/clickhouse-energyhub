@@ -7,7 +7,13 @@ variable "dbt_project_name" {
 variable "dbt_version" {
   description = "Версия dbt для ClickHouse"
   type        = string
-  default     = "1.7.3"
+  default     = "1.9.2"
+}
+
+variable "dbt_core_version" {
+  description = "Версия dbt-core"
+  type        = string
+  default     = "1.10.7"
 }
 
 variable "dbt_port" {

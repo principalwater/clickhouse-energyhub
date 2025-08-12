@@ -52,6 +52,10 @@
   - **ReplicatedMergeTree** + **Distributed** таблицы
   - **3 ноды ClickHouse Keeper** для координации
 - **dbt** - Инструмент для трансформации данных
+  - **dbt-core 1.10.7** + **dbt-clickhouse 1.9.2**
+  - **Многослойная архитектура**: staging → intermediate → marts
+  - **Поддержка всех материализаций**: view, table, incremental, ephemeral
+  - **ClickHouse-специфичные макросы** для оптимизации
 - **Kafka** - Потоковая обработка данных
 - **Terraform** - Инфраструктура как код
 - **Docker** - Контейнеризация
@@ -77,14 +81,15 @@ clickhouse-energyhub/
 ### Предварительные требования
 
 - Docker и Docker Compose
-- Python 3.8+
+- Python 3.9+
 - Terraform 1.0+
+- dbt-core >= 1.10.0
 
 ### Установка
 
 1. **Клонирование репозитория**
 ```bash
-git clone https://github.com/your-org/clickhouse-energyhub.git
+git clone https://github.com/principalwater/clickhouse-energyhub.git
 cd clickhouse-energyhub
 ```
 
@@ -109,6 +114,93 @@ cp profiles/profiles.yml ~/.dbt/
 ./run_dbt.sh run dev
 ./run_dbt.sh test dev
 ./run_dbt.sh docs --serve
+```
+
+## 🔄 dbt - Трансформация данных
+
+### Архитектура dbt
+
+```
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+│   Staging   │───▶│ Intermediate │───▶│    Marts    │
+│             │    │              │    │             │
+│ • Очистка   │    │ • Агрегация  │    │ • KPI       │
+│ • Валидация │    │ • Почасовые  │    │ • Бизнес-   │
+│ • Нормализ. │    │ • Ежедневные │    │   логика    │
+└─────────────┘    └──────────────┘    └─────────────┘
+```
+
+### Слои данных
+
+1. **Staging** - Очистка и валидация сырых данных
+   - Проверка качества данных (DQ)
+   - Нормализация форматов
+   - Базовые вычисления
+
+2. **Intermediate** - Промежуточные агрегации
+   - Почасовые агрегаты
+   - Ежедневные агрегаты
+   - Региональные агрегаты
+
+3. **Marts** - Готовые для BI таблицы
+   - KPI и метрики
+   - Бизнес-логика
+   - Оптимизированные запросы
+
+### Материализации
+
+- **View** - Виртуальные таблицы (по умолчанию)
+- **Table** - Физические таблицы для производительности
+- **Incremental** - Инкрементальные обновления
+- **Ephemeral** - Временные CTE для зависимостей
+
+### ClickHouse оптимизации
+
+- **Партиционирование** по месяцам/дням
+- **MergeTree** движки для таблиц
+- **Специальные макросы** для ClickHouse
+- **Поддержка кластерных таблиц**
+
+### Команды dbt
+
+```bash
+# Активация окружения
+source dbt_env/bin/activate
+
+# Запуск моделей
+dbt run                    # Все модели
+dbt run --select marts     # Только marts
+dbt run --select +fact_energy_daily  # С зависимостями
+
+# Тестирование
+dbt test                   # Все тесты
+dbt test --select test_type:completeness  # Конкретный тип
+
+# Документация
+dbt docs generate          # Генерация
+dbt docs serve             # Веб-интерфейс
+
+# Снапшоты
+dbt snapshot               # Создание снапшотов
+
+# Seeds
+dbt seed                   # Загрузка CSV данных
+```
+
+### Мониторинг и отладка
+
+```bash
+# Компиляция без выполнения
+dbt compile
+
+# Проверка зависимостей
+dbt list
+
+# Подробные логи
+dbt run --verbose
+
+# Проверка конкретной модели
+dbt run --select model_name --full-refresh
 ```
 
 ## 📊 Data Quality

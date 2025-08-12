@@ -3,48 +3,81 @@ clickhouse_energyhub:
   outputs:
     dev:
       type: clickhouse
-      host: localhost
+      host: clickhouse-01
       port: 9000
-      user: default
-      password: ""
       database: default
-      schema: dbt_dev
-      secure: false
-      verify: false
-      target_type: local
+      user: bi_user
+      password: Tftabbzgf1.
+      schema: default
+      threads: 4
+      keepalives_idle: 0
+      connect_timeout: 10
+      send_receive_timeout: 300
+      sync_request_timeout: 5
       
-    test:
-      type: clickhouse
-      host: localhost
-      port: 9000
-      user: default
-      password: ""
-      database: default
-      schema: dbt_test
-      secure: false
-      verify: false
-      target_type: local
-      
+      # Настройки для ClickHouse
+      clickhouse_settings:
+        use_default_database: 1
+        allow_experimental_object_type: 1
+        allow_experimental_map_type: 1
+        allow_experimental_low_cardinality_type: 1
+        
+      # Настройки для DQ проверок
+      dq_settings:
+        enable_dq_checks: true
+        dq_schema: dq_checks
+        dq_failure_threshold: 0.1
+        
     prod:
       type: clickhouse
-      host: clickhouse-01.energyhub.local
+      host: clickhouse-01
       port: 9000
-      user: dbt_user
-      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
-      database: energyhub
-      schema: dbt_prod
-      secure: true
-      verify: true
-      target_type: cluster
+      database: default
+      user: bi_user
+      password: Tftabbzgf1.
+      schema: default
+      threads: 8
+      keepalives_idle: 0
+      connect_timeout: 10
+      send_receive_timeout: 300
+      sync_request_timeout: 5
       
-    cluster:
+      # Настройки для ClickHouse
+      clickhouse_settings:
+        use_default_database: 1
+        allow_experimental_object_type: 1
+        allow_experimental_map_type: 1
+        allow_experimental_low_cardinality_type: 1
+        
+      # Настройки для DQ проверок
+      dq_settings:
+        enable_dq_checks: true
+        dq_schema: dq_checks
+        dq_failure_threshold: 0.05  # Более строгие проверки для прода
+        
+    test:
       type: clickhouse
-      host: clickhouse-01.energyhub.local
+      host: clickhouse-01
       port: 9000
-      user: dbt_user
-      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
-      database: energyhub
-      schema: dbt_prod
-      secure: true
-      verify: true
-      target_type: cluster
+      database: default
+      user: bi_user
+      password: Tftabbzgf1.
+      schema: default
+      threads: 2
+      keepalives_idle: 0
+      connect_timeout: 10
+      send_receive_timeout: 300
+      sync_request_timeout: 5
+      
+      # Настройки для ClickHouse
+      clickhouse_settings:
+        use_default_database: 1
+        allow_experimental_object_type: 1
+        allow_experimental_map_type: 1
+        allow_experimental_low_cardinality_type: 1
+        
+      # Настройки для DQ проверок
+      dq_settings:
+        enable_dq_checks: true
+        dq_schema: dq_checks
+        dq_failure_threshold: 0.2  # Более мягкие проверки для тестов
