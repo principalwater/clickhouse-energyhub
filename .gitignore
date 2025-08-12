@@ -59,3 +59,5 @@ dbt/profiles/*.yml
 *.backup
 *.old
 dbt/package-lock.yml
+dbt/dbt_project.yml
+dbt/macros/dq_macros.yml

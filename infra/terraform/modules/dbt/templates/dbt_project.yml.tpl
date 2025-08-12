@@ -3,15 +3,11 @@ version: '1.0.0'
 config-version: 2
 require-dbt-version: ">=1.10.0"
 
-# Описание проекта
-description: "dbt проект для ClickHouse EnergyHub с DQ проверками"
-
 # Настройки профиля
 profile: 'clickhouse_energyhub'
 
 # Пути к моделям
 model-paths: ["models"]
-analysis-paths: ["analysis"]
 test-paths: ["tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
@@ -49,9 +45,7 @@ seeds:
 snapshots:
   +target_schema: snapshots
 
-# Настройки для анализа
-analysis:
-  +schema: analysis
+
 
 # Макросы для DQ проверок
 vars:
