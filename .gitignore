@@ -58,3 +58,4 @@ dbt/profiles/*.yml
 *.bak
 *.backup
 *.old
+dbt/package-lock.yml

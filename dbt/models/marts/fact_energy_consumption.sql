@@ -46,7 +46,7 @@ location_info AS (
     region,
     city,
     timezone
-  FROM {{ ref('dim_locations') }}
+  FROM {{ ref('dds_locations') }}
 ),
 
 -- Агрегация по часам

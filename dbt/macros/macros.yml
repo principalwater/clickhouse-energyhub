@@ -7,7 +7,6 @@ macros:
       - name: environment
         type: string
         description: "Окружение (dev, test, prod)"
-        default: "dev"
     returns:
       type: float
       description: "Порог DQ проверок"
@@ -30,7 +29,6 @@ macros:
       - name: severity
         type: string
         description: "Уровень важности"
-        default: "info"
 
   - name: create_dq_summary_table
     description: "Создание таблицы для хранения результатов DQ проверок"
@@ -65,11 +63,9 @@ macros:
       - name: severity
         type: string
         description: "Уровень важности"
-        default: "info"
       - name: error_message
         type: string
         description: "Сообщение об ошибке"
-        default: ""
 
   - name: get_dq_statistics
     description: "Получение статистики DQ проверок"
@@ -80,7 +76,6 @@ macros:
       - name: days_back
         type: integer
         description: "Количество дней назад"
-        default: 7
     returns:
       type: table
       description: "Статистика DQ проверок"
@@ -129,7 +124,6 @@ macros:
       - name: partition_type
         type: string
         description: "Тип партиционирования"
-        default: "monthly"
     returns:
       type: string
       description: "SQL для партиционирования"
@@ -140,15 +134,12 @@ macros:
       - name: engine_type
         type: string
         description: "Тип движка"
-        default: "MergeTree"
       - name: order_by
         type: string
         description: "Колонки для ORDER BY"
-        default: null
       - name: partition_by
         type: string
         description: "SQL для партиционирования"
-        default: null
     returns:
       type: string
       description: "SQL для создания движка"
@@ -162,7 +153,6 @@ macros:
       - name: index_type
         type: string
         description: "Тип индекса"
-        default: "minmax"
     returns:
       type: string
       description: "SQL для создания индексов"
@@ -261,7 +251,6 @@ macros:
       - name: engine_type
         type: string
         description: "Тип движка (по умолчанию MergeTree)"
-        default: "MergeTree"
       - name: order_by
         type: string
         description: "ORDER BY выражение"
@@ -274,18 +263,6 @@ macros:
     returns:
       type: string
       description: "SQL для ReplicatedMergeTree движка"
-    examples:
-      - description: "Создание ReplicatedMergeTree с _local суффиксом"
-        code: |
-          {{ clickhouse_replicated_engine(
-            engine_type='MergeTree',
-            order_by='id',
-            partition_by='PARTITION BY toYYYYMM(created_at)'
-          ) }}
-        result: |
-          ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/otus_default/table_name_local/{uuid}', '{replica}')
-          ORDER BY id
-          PARTITION BY toYYYYMM(created_at)
 
   - name: clickhouse_distributed_engine
     description: "Создает ENGINE для Distributed таблиц, ссылающихся на _local таблицы"
@@ -302,12 +279,6 @@ macros:
     returns:
       type: string
       description: "SQL для Distributed движка"
-    examples:
-      - description: "Создание Distributed таблицы"
-        code: |
-          {{ clickhouse_distributed_engine('dim_locations', 'cityHash64(location_id)') }}
-        result: |
-          ENGINE = Distributed(dwh_prod, otus_default, dim_locations_local, cityHash64(location_id))
 
   - name: create_replicated_table
     description: "Создание ReplicatedMergeTree таблицы на кластере с суффиксом _local"
@@ -321,7 +292,6 @@ macros:
       - name: engine_type
         type: string
         description: "Тип движка"
-        default: "MergeTree"
       - name: order_by
         type: string
         description: "ORDER BY выражение"
@@ -334,20 +304,6 @@ macros:
     returns:
       type: string
       description: "SQL для создания ReplicatedMergeTree таблицы"
-    examples:
-      - description: "Создание таблицы с _local суффиксом"
-        code: |
-          {{ create_replicated_table(
-            'dim_locations',
-            columns=[{'name': 'id', 'type': 'UInt32'}, {'name': 'name', 'type': 'String'}],
-            order_by='id'
-          ) }}
-        result: |
-          CREATE TABLE IF NOT EXISTS dim_locations_local ON CLUSTER dwh_prod (
-            id UInt32,
-            name String
-          ) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/otus_default/dim_locations_local/{uuid}', '{replica}')
-          ORDER BY id
 
   - name: create_distributed_table
     description: "Создание Distributed таблицы, ссылающейся на _local таблицу"
@@ -367,13 +323,6 @@ macros:
     returns:
       type: string
       description: "SQL для создания Distributed таблицы"
-    examples:
-      - description: "Создание Distributed таблицы"
-        code: |
-          {{ create_distributed_table('dim_locations', 'dim_locations', 'cityHash64(id)') }}
-        result: |
-          CREATE TABLE IF NOT EXISTS dim_locations ON CLUSTER dwh_prod AS dim_locations_local
-          ENGINE = Distributed(dwh_prod, otus_default, dim_locations_local, cityHash64(id))
 
   - name: clickhouse_cluster_insert_strategy
     description: "Стратегия вставки для кластерных таблиц (использует _local таблицы)"

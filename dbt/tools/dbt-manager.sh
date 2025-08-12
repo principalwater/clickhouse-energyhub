@@ -147,12 +147,15 @@ run_dbt_command() {
     local target="${2:-dev}"
     local model="$3"
     
+    # Устанавливаем переменную окружения для профилей
+    export DBT_PROFILES_DIR="$(cd .. && pwd)/profiles"
+    
     print_info "Выполнение: dbt $cmd --target $target $model"
     
     if [ -n "$model" ]; then
-        dbt "$cmd" --target "$target" --select "$model" --config-dir ../profiles
+        dbt "$cmd" --target "$target" --select "$model"
     else
-        dbt "$cmd" --target "$target" --config-dir ../profiles
+        dbt "$cmd" --target "$target"
     fi
 }
 
@@ -163,6 +166,7 @@ show_help() {
     echo "Команды:"
     echo "  setup          - Настройка и проверка окружения dbt"
     echo "  check          - Проверка подключения и конфигурации"
+    echo "  deps           - Установка зависимостей dbt"
     echo "  run            - Запуск моделей dbt"
     echo "  test           - Запуск тестов dbt"
     echo "  compile        - Компиляция моделей dbt"
@@ -174,6 +178,7 @@ show_help() {
     echo ""
     echo "Примеры:"
     echo "  $0 setup                    # Настройка окружения"
+    echo "  $0 deps                     # Установка зависимостей"
     echo "  $0 run                      # Запуск всех моделей"
     echo "  $0 run prod                 # Запуск моделей для prod"
     echo "  $0 test dev                 # Запуск тестов для dev"
@@ -205,6 +210,13 @@ main() {
             check_clickhouse_connection
             check_dbt_config
             print_success "Все проверки пройдены успешно!"
+            ;;
+        "deps")
+            print_header "Установка зависимостей dbt"
+            load_environment
+            check_dbt_environment
+            run_dbt_command "deps" "$target"
+            print_success "Зависимости dbt установлены успешно!"
             ;;
         "run")
             print_header "Запуск моделей dbt"

@@ -72,13 +72,13 @@ sources:
             description: "Рейтинг эффективности"
             tests:
               - not_null
-              - dbt_utils.accepted_range:
+              - accepted_values:
                   values: ['High Efficiency', 'Good Efficiency', 'Acceptable Efficiency', 'Low Efficiency']
           - name: anomaly_flag
             description: "Флаг аномалии"
             tests:
               - not_null
-              - dbt_utils.accepted_range:
+              - accepted_values:
                   values: ['Normal', 'Overload', 'Negative Consumption', 'Voltage Out of Range', 'Current Out of Range', 'Power Factor Out of Range']
           - name: ods_dq_score
             description: "DQ score из ODS слоя"

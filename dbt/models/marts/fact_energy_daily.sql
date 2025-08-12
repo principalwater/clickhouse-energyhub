@@ -3,11 +3,7 @@
 
 {{ config(
     materialized='table',
-    tags=['marts', 'energy_consumption', 'daily_aggregation'],
-    -- Оптимизация для ClickHouse
-    engine='MergeTree()',
-    partition_by='toYYYYMM(date_key)',
-    order_by='(device_id, date_key, location_id)'
+    tags=['marts', 'energy_consumption', 'daily_aggregation']
 ) }}
 
 SELECT 

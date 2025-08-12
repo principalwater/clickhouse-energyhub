@@ -39,7 +39,16 @@
       {% for column in columns %}
         {{ column.name }} {{ column.type }}{% if column.default %} DEFAULT {{ column.default }}{% endif %}{% if not loop.last %},{% endif %}
       {% endfor %}
-    ) {{ clickhouse_replicated_engine(engine_type, order_by, partition_by, settings) }}
+    ) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/otus_default/{{ table_name }}_local', '{replica}')
+    {% if order_by %}
+      ORDER BY {{ order_by }}
+    {% endif %}
+    {% if partition_by %}
+      {{ partition_by }}
+    {% endif %}
+    {% if settings %}
+      SETTINGS {{ settings }}
+    {% endif %}
   {% endset %}
   
   {{ return(create_sql) }}

@@ -113,7 +113,7 @@
   {% endif %}
 {% endmacro %}
 
-{% macro run_dq_suite(table_name, columns_config) %}
+{% macro run_basic_dq_suite(table_name, columns_config) %}
   {% set dq_results = [] %}
   
   {% for column in columns_config %}

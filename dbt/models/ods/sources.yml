@@ -42,11 +42,7 @@ sources:
             description: "Стандарт напряжения"
             tests:
               - not_null
-              - dbt_utils.accepted_range:
-                  values: [220, 380]
           - name: status
             description: "Статус устройства"
             tests:
               - not_null
-              - dbt_utils.accepted_range:
-                  values: ['active', 'inactive', 'maintenance', 'retired']

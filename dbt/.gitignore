@@ -4,6 +4,7 @@ dbt_packages/
 logs/
 dbt_project.yml.bak
 /dbt/profiles/
+/dbt/package_lock.yml
 
 # Python
 __pycache__/

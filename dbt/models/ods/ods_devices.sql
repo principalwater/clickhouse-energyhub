@@ -1,12 +1,6 @@
-{{
-  config(
-    materialized='view',
-    schema='ods',
-    tags=['ods', 'staging', 'devices', 'dq_checked']
-  )
-}}
+{{ config(materialized='view', schema='ods', tags=['ods', 'staging', 'devices', 'dq_checked']) }}
 
--- Staging модель для устройств в ODS слое
+-- ODS модель для устройств
 -- Предобработка данных об устройствах с DQ проверками
 
 WITH source_data AS (

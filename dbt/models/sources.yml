@@ -62,3 +62,113 @@ sources:
             tests:
               - not_null
               - is_timestamp
+
+      - name: devices
+        description: "Сырые данные устройств"
+        columns:
+          - name: device_id
+            description: "Уникальный идентификатор устройства"
+            tests:
+              - not_null
+              - unique
+          - name: device_name
+            description: "Название устройства"
+            tests:
+              - not_null
+          - name: device_type
+            description: "Тип устройства"
+            tests:
+              - not_null
+          - name: location_id
+            description: "Идентификатор локации"
+            tests:
+              - not_null
+          - name: installation_date
+            description: "Дата установки"
+            tests:
+              - not_null
+          - name: status
+            description: "Статус устройства"
+            tests:
+              - not_null
+
+      - name: device_types
+        description: "Сырые данные типов устройств"
+        columns:
+          - name: device_type_id
+            description: "Уникальный идентификатор типа устройства"
+            tests:
+              - not_null
+              - unique
+          - name: device_type_name
+            description: "Название типа устройства"
+            tests:
+              - not_null
+          - name: category
+            description: "Категория устройства"
+            tests:
+              - not_null
+          - name: description
+            description: "Описание типа устройства"
+            tests:
+              - not_null
+
+  - name: reference
+    description: "Справочные данные"
+    database: default
+    schema: reference_data
+    tables:
+      - name: locations
+        description: "Справочник локаций"
+        columns:
+          - name: location_id
+            description: "Уникальный идентификатор локации"
+            tests:
+              - not_null
+              - unique
+          - name: location_name
+            description: "Название локации"
+            tests:
+              - not_null
+          - name: location_type
+            description: "Тип локации"
+            tests:
+              - not_null
+          - name: address
+            description: "Адрес локации"
+            tests:
+              - not_null
+
+  - name: kafka
+    description: "Данные из Kafka"
+    database: default
+    schema: kafka_data
+    tables:
+      - name: devices
+        description: "Данные устройств из Kafka"
+        columns:
+          - name: device_id
+            description: "Уникальный идентификатор устройства"
+            tests:
+              - not_null
+              - unique
+          - name: device_name
+            description: "Название устройства"
+            tests:
+              - not_null
+          - name: device_type
+            description: "Тип устройства"
+            tests:
+              - not_null
+          - name: location_id
+            description: "Идентификатор локации"
+            tests:
+              - not_null
+          - name: installation_date
+            description: "Дата установки"
+            tests:
+              - not_null
+          - name: status
+            description: "Статус устройства"
+            tests:
+              - not_null
