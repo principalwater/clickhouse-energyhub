@@ -1,6 +1,6 @@
-# 📱 Простая настройка Telegram алертинга в Airflow
+# 📱 Современная настройка Telegram алертинга в Airflow
 
-Простое решение для отправки уведомлений в Telegram из Apache Airflow без плагинов.
+Простое решение для отправки уведомлений в Telegram из Apache Airflow через переменные окружения.
 
 ## 🏗️ Архитектура
 
@@ -17,64 +17,92 @@
 
 - Apache Airflow >= 2.8.0 (использует новый синтаксис `schedule`)
 - Python >= 3.8
+- apache-airflow-providers-telegram >= 4.8.2
 - Telegram Bot Token
 - Telegram Chat ID
 
 ## 🚀 Быстрая настройка
 
-### Шаг 1: Установка провайдера
-```bash
-pip install apache-airflow-providers-telegram>=4.8.2
-```
-
-### Шаг 2: Создание Telegram Bot
+### Шаг 1: Создание Telegram Bot
 1. Найдите @BotFather в Telegram
 2. Отправьте `/newbot`
-3. Следуйте инструкциям
-4. Сохраните Bot Token
+3. Следуйте инструкциям для создания бота
+4. Сохраните полученный Bot Token
 
-### Шаг 3: Получение Chat ID
+### Шаг 2: Получение Chat ID
+
+**Для личного чата:**
 1. Найдите @userinfobot в Telegram
-2. Добавьте в нужный чат/канал
-3. Отправьте любое сообщение
-4. Скопируйте Chat ID
+2. Отправьте любое сообщение
+3. Скопируйте ваш Chat ID
 
-### Шаг 4: Настройка переменных
-```bash
-export TELEGRAM_BOT_TOKEN="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-export TELEGRAM_CHAT_ID="-1001234567890"
+**Для группы/канала:**
+Предположим, что имя вашего бота `my_bot`.
+
+1. **Добавьте бота в группу:**
+   - Перейдите в группу
+   - Нажмите на название группы
+   - Нажмите "Добавить участников"
+   - В поиске найдите вашего бота: `@my_bot`
+   - Выберите бота и нажмите "Добавить"
+
+2. **Отправьте тестовое сообщение боту:**
+   - Отправьте в группу сообщение: `/my_id @my_bot`
+   - (Сообщение должно начинаться с `/` для корректной работы)
+
+3. **Получите Chat ID через API:**
+   - Перейдите по ссылке: `https://api.telegram.org/botXXX:YYYY/getUpdates`
+   - Замените `XXX:YYYY` на ваш Bot Token
+
+4. **Найдите Chat ID:**
+   - Найдите в ответе: `"chat":{"id":-zzzzzzzzzz,`
+   - `-zzzzzzzzzz` это ваш Chat ID (с минусом)
+
+5. **Тестирование (опционально):**
+   ```bash
+   curl -X POST "https://api.telegram.org/botXXX:YYYY/sendMessage" \
+        -d "chat_id=-zzzzzzzzzz&text=Тестовое сообщение"
+   ```
+
+### Шаг 3: Настройка через Terraform (рекомендуется)
+Добавьте в ваш `terraform.tfvars` файл:
+```hcl
+# Telegram Bot Configuration
+telegram_bot_token = "YOUR_BOT_TOKEN_HERE"  # Получите у @BotFather
+telegram_chat_id   = "YOUR_CHAT_ID_HERE"   # Получите у @userinfobot
 ```
 
-### Шаг 5: Настройка Airflow Connection
+### Шаг 4: Альтернативно - через переменные окружения
 ```bash
-cd airflow
-python setup_telegram.py
+export TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN_HERE"
+export TELEGRAM_CHAT_ID="YOUR_CHAT_ID_HERE"
 ```
 
-### Шаг 6: Установка переменной Airflow
-В Airflow UI: **Admin** → **Variables** → **+**
-- Key: `telegram_chat_id`
-- Value: `-1001234567890`
-
-### Шаг 7: Перезапуск Airflow
+### Шаг 5: Развертывание
 ```bash
-airflow webserver stop
-airflow scheduler stop
-airflow webserver start -d
-airflow scheduler start -d
+cd infra/terraform
+terraform apply
 ```
 
 ## 🔧 Использование в DAG'ах
 
-### Простое уведомление
+### Настройка переменных в начале файла
 ```python
+import os
 from airflow.providers.telegram.operators.telegram import TelegramOperator
 
+# Переменные окружения для Telegram
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
+```
+
+### Простое уведомление
+```python
 with DAG('my_dag') as dag:
     notification = TelegramOperator(
         task_id='send_notification',
-        telegram_conn_id='telegram_default',
-        chat_id='{{ var.value.telegram_chat_id }}',
+        token=TELEGRAM_BOT_TOKEN,      # Переменная окружения
+        chat_id=TELEGRAM_CHAT_ID,      # Переменная окружения
         text="🎉 Task completed!",
         parse_mode='Markdown',
     )
@@ -96,8 +124,8 @@ with DAG('my_dag') as dag:
     # Уведомление об успехе
     success_notification = TelegramOperator(
         task_id='success_notification',
-        telegram_conn_id='telegram_default',
-        chat_id='{{ var.value.telegram_chat_id }}',
+        token=TELEGRAM_BOT_TOKEN,
+        chat_id=TELEGRAM_CHAT_ID,
         text="✅ Task completed successfully!",
         parse_mode='Markdown',
     )
@@ -106,34 +134,28 @@ with DAG('my_dag') as dag:
     task >> success_notification
 ```
 
-### Уведомления о разных событиях
+### Условные уведомления с проверкой
 ```python
+# Проверка доступности Telegram
+TELEGRAM_AVAILABLE = bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)
+
 with DAG('my_dag') as dag:
-    # Задача
     task = PythonOperator(
         task_id='my_task',
         python_callable=lambda: print("Task executed")
     )
     
-    # Уведомления
-    start_notification = TelegramOperator(
-        task_id='start_notification',
-        telegram_conn_id='telegram_default',
-        chat_id='{{ var.value.telegram_chat_id }}',
-        text="🚀 DAG started",
-        parse_mode='Markdown',
-    )
-    
-    success_notification = TelegramOperator(
-        task_id='success_notification',
-        telegram_conn_id='telegram_default',
-        chat_id='{{ var.value.telegram_chat_id }}',
-        text="✅ Task completed",
-        parse_mode='Markdown',
-    )
-    
-    # Зависимости
-    start_notification >> task >> success_notification
+    # Уведомления только если Telegram настроен
+    if TELEGRAM_AVAILABLE:
+        success_notification = TelegramOperator(
+            task_id='success_notification',
+            token=TELEGRAM_BOT_TOKEN,
+            chat_id=TELEGRAM_CHAT_ID,
+            text="✅ Task completed",
+            parse_mode='Markdown',
+        )
+        
+        task >> success_notification
 ```
 
 ## 📱 Форматы сообщений
@@ -159,14 +181,14 @@ parse_mode=None
 ## 🧪 Тестирование
 
 ### Запуск тестового DAG
-1. Включите DAG `telegram_alerting_demo` в Airflow UI
-2. Или запустите через CLI: `airflow dags trigger telegram_alerting_demo`
+1. Включите DAG `telegram_monitoring_prod` в Airflow UI
+2. Или запустите через CLI: `airflow dags trigger telegram_monitoring_prod`
 
-### Проверка соединения
-В Airflow UI: **Admin** → **Connections** → `telegram_default`
-
-### Проверка переменных
-В Airflow UI: **Admin** → **Variables** → `telegram_chat_id`
+### Проверка переменных окружения
+```bash
+# В контейнере Airflow проверьте:
+docker exec airflow-scheduler env | grep TELEGRAM
+```
 
 ## 🚨 Устранение неполадок
 
@@ -175,31 +197,34 @@ parse_mode=None
 pip install apache-airflow-providers-telegram>=4.8.2
 ```
 
-### "Connection not found"
-```bash
-python setup_telegram.py
-```
-
-### "Variable not found"
-Создайте переменную `telegram_chat_id` в Airflow UI
+### "Telegram переменные окружения не настроены"
+1. Проверьте настройки в `terraform.tfvars`
+2. Пересоздайте контейнеры: `terraform apply`
 
 ### "Message not sent"
-Проверьте права бота и добавление в чат
+1. Проверьте корректность Bot Token
+2. Убедитесь, что бот добавлен в чат/канал
+3. Проверьте права бота в чате
 
-## 📚 Примеры DAG'ов
+### "Token validation failed"
+1. Получите новый токен у @BotFather
+2. Обновите переменную `telegram_bot_token` в tfvars
+3. Перезапустите: `terraform apply`
+
+## 📚 Готовые DAG'ы в проекте
 
 В проекте уже есть готовые примеры:
-- `telegram_alerting_demo` - основной демо DAG
-- `telegram_manual_notifications` - ручные уведомления
-- `telegram_message_formats` - тест форматов сообщений
+- `telegram_monitoring_prod` - продакшн мониторинг (каждые 30 мин)
+- `telegram_manual_report` - ручной запуск отчетов
 
-## 🎯 Преимущества простого подхода
+## 🎯 Преимущества нового подхода
 
-✅ **Без плагинов** - используем только официальные компоненты  
-✅ **Простота** - минимум кода и настроек  
-✅ **Надежность** - официальная поддержка Apache Airflow  
-✅ **Гибкость** - легко интегрировать в любые DAG'и  
-✅ **Масштабируемость** - стандартный подход Airflow  
+✅ **Через переменные окружения** - безопасно и просто  
+✅ **Интеграция с Terraform** - автоматизированное развертывание  
+✅ **Без connections** - не нужно настраивать в Airflow UI  
+✅ **Простота обновления** - изменения только в tfvars  
+✅ **Безопасность** - креды не попадают в код или UI  
+✅ **Московское время** - все временные метки в UTC+3 (Europe/Moscow)  
 
 ---
 

@@ -15,3 +15,6 @@ docker>=6.0.0
 
 # ClickHouse integration
 clickhouse-connect>=0.7.0
+
+# Timezone support for Moscow time (UTC+3)
+pytz>=2023.3

@@ -8,6 +8,15 @@
 - Отправляет уведомления в Telegram
 
 Использует TelegramOperator 4.8.2+ с современным API
+
+НАСТРОЙКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ:
+Для работы с Telegram необходимо установить переменные окружения:
+- TELEGRAM_BOT_TOKEN: токен вашего бота (получить у @BotFather)
+- TELEGRAM_CHAT_ID: ID чата для отправки уведомлений
+
+Пример:
+export TELEGRAM_BOT_TOKEN="1234567890:ABCDEFghijklmnopqrstuvwxyz"
+export TELEGRAM_CHAT_ID="-1001234567890"
 """
 
 import os
@@ -15,19 +24,36 @@ import json
 import psutil
 import docker
 from datetime import datetime, timedelta
+import pytz
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-from airflow.models import DagRun, TaskInstance
-from airflow.utils.session import provide_session
-from sqlalchemy.orm import Session
+from airflow.api.client.local_client import Client
+from airflow.configuration import conf
+
+# Переменные окружения для Telegram
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
+
+# Функция для получения московского времени
+def get_moscow_time():
+    """Возвращает текущее время в московском часовом поясе (UTC+3)"""
+    moscow_tz = pytz.timezone('Europe/Moscow')
+    utc_now = datetime.now(pytz.UTC)
+    moscow_time = utc_now.astimezone(moscow_tz)
+    return moscow_time.strftime('%H:%M:%S')
 
 # Попытка импорта официального TelegramOperator
 try:
     from airflow.providers.telegram.operators.telegram import TelegramOperator
-    TELEGRAM_AVAILABLE = True
-    print("✅ TelegramOperator 4.8.2 доступен")
+    # Проверяем наличие переменных окружения
+    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        TELEGRAM_AVAILABLE = True
+        print("✅ TelegramOperator 4.8.2 доступен, переменные окружения настроены")
+    else:
+        TELEGRAM_AVAILABLE = False
+        print("❌ Telegram переменные окружения не настроены. Нужны: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID")
 except ImportError:
     TELEGRAM_AVAILABLE = False
     print("❌ TelegramOperator недоступен. Установите: pip install apache-airflow-providers-telegram>=4.8.2")
@@ -36,19 +62,38 @@ except ImportError:
 def get_dag_status_report(**context):
     """
     Получает отчет о состоянии всех активных DAG'ов за последний день.
+    Совместимо с Airflow 3.0 - использует REST API вместо прямых ORM запросов.
     """
-    from airflow.models import DagRun, TaskInstance
-    from airflow.utils.session import provide_session
-    from sqlalchemy.orm import Session
+    import requests
+    import json
+    from airflow.configuration import conf
     
-    @provide_session
-    def get_dag_runs(session: Session = None):
-        # Получаем DAG'и за последние 24 часа
-        yesterday = datetime.now() - timedelta(days=1)
+    try:
+        # Получаем базовый URL Airflow - используем внутренний адрес контейнера
+        webserver_base_url = conf.get('webserver', 'base_url', fallback='http://localhost:8080')
+        api_url = f"{webserver_base_url}/api/v2"
         
-        dag_runs = session.query(DagRun).filter(
-            DagRun.start_date >= yesterday
-        ).all()
+        # Параметры для запроса DAG runs за последние 24 часа
+        yesterday = datetime.now() - timedelta(days=1)
+        start_date_gte = yesterday.isoformat()
+        
+        # Запрос к API для получения DAG runs
+        dag_runs_response = requests.get(
+            f"{api_url}/dags/~/dagRuns",
+            params={
+                'start_date_gte': start_date_gte,
+                'limit': 1000
+            },
+            timeout=30
+        )
+        
+        if dag_runs_response.status_code != 200:
+            print(f"❌ Ошибка API: {dag_runs_response.status_code}")
+            # Fallback к простой статистике
+            return generate_fallback_report()
+        
+        dag_runs_data = dag_runs_response.json()
+        dag_runs = dag_runs_data.get('dag_runs', [])
         
         report = {
             'total_dags': len(dag_runs),
@@ -60,30 +105,27 @@ def get_dag_status_report(**context):
         }
         
         for dag_run in dag_runs:
-            if dag_run.state == 'success':
+            state = dag_run.get('state')
+            if state == 'success':
                 report['success'] += 1
-            elif dag_run.state == 'failed':
+            elif state == 'failed':
                 report['failed'] += 1
                 report['failed_dags'].append({
-                    'dag_id': dag_run.dag_id,
-                    'start_date': dag_run.start_date.isoformat(),
-                    'end_date': dag_run.end_date.isoformat() if dag_run.end_date else None,
-                    'duration': str(dag_run.end_date - dag_run.start_date) if dag_run.end_date else 'N/A'
+                    'dag_id': dag_run.get('dag_id'),
+                    'start_date': dag_run.get('start_date'),
+                    'end_date': dag_run.get('end_date'),
+                    'duration': 'N/A'  # Упрощаем для API версии
                 })
-            elif dag_run.state == 'running':
+            elif state in ['running', 'queued']:
                 report['running'] += 1
                 report['running_dags'].append({
-                    'dag_id': dag_run.dag_id,
-                    'start_date': dag_run.start_date.isoformat(),
-                    'duration': str(datetime.now() - dag_run.start_date)
+                    'dag_id': dag_run.get('dag_id'),
+                    'start_date': dag_run.get('start_date'),
+                    'duration': 'N/A'  # Упрощаем для API версии
                 })
         
-        return report
-    
-    report = get_dag_runs()
-    
-    # Формируем сообщение для Telegram
-    message = f"""📊 **Отчет по DAG'ам за последние 24 часа**
+        # Формируем сообщение для Telegram
+        message = f"""📊 **Отчет по DAG'ам за последние 24 часа**
 
 🔢 **Общая статистика:**
 • Всего DAG'ов: {report['total_dags']}
@@ -92,26 +134,50 @@ def get_dag_status_report(**context):
 • Выполняются: {report['running']} 🔄
 
 """
-    
-    if report['failed_dags']:
-        message += "❌ **DAG'и с ошибками:**\n"
-        for failed in report['failed_dags'][:5]:  # Показываем только первые 5
-            message += f"• {failed['dag_id']} - {failed['start_date']}\n"
-        if len(report['failed_dags']) > 5:
-            message += f"• ... и еще {len(report['failed_dags']) - 5}\n"
-    
-    if report['running_dags']:
-        message += "\n🔄 **Выполняющиеся DAG'и:**\n"
-        for running in report['running_dags'][:3]:  # Показываем только первые 3
-            message += f"• {running['dag_id']} - {running['duration']}\n"
-        if len(report['running_dags']) > 3:
-            message += f"• ... и еще {len(report['running_dags']) - 3}\n"
-    
-    # Сохраняем отчет в контексте для использования в других задачах
-    context['task_instance'].xcom_push(key='dag_report', value=report)
-    context['task_instance'].xcom_push(key='dag_message', value=message)
-    
-    return message
+        
+        if report['failed_dags']:
+            message += "❌ **DAG'и с ошибками:**\n"
+            for failed in report['failed_dags'][:5]:  # Показываем только первые 5
+                message += f"• {failed['dag_id']} - {failed['start_date']}\n"
+        
+        if report['running_dags']:
+            message += "\n🔄 **Выполняющиеся DAG'и:**\n"
+            for running in report['running_dags'][:3]:  # Показываем только первые 3
+                message += f"• {running['dag_id']} - запущен {running['start_date']}\n"
+        
+        message += f"\n⏰ Время отчета: {get_moscow_time()}"
+        
+        # Сохраняем отчет в контексте
+        context['task_instance'].xcom_push(key='dag_report', value=message)
+        context['task_instance'].xcom_push(key='dag_message', value=message)
+        
+        return message
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения статистики DAG'ов: {e}")
+        error_report = generate_fallback_report()
+        
+        error_message = f"""📊 **Отчет по DAG'ам за последние 24 часа**
+
+❌ **Ошибка получения данных**
+Не удалось получить статистику из Airflow API.
+
+⏰ Время отчета: {get_moscow_time()}
+"""
+        context['task_instance'].xcom_push(key='dag_report_error', value=str(e))
+        context['task_instance'].xcom_push(key='dag_message', value=error_message)
+        return error_message
+
+def generate_fallback_report():
+    """Генерирует простой отчет в случае ошибки API"""
+    return {
+        'total_dags': 0,
+        'success': 0,
+        'failed': 0,
+        'running': 0,
+        'failed_dags': [],
+        'running_dags': []
+    }
 
 
 def get_system_metrics(**context):
@@ -178,15 +244,15 @@ def get_system_metrics(**context):
 
 💻 **CPU и память:**
 • CPU: {cpu_percent}%
-• RAM: {memory.percent}% ({memory.available_gb} GB свободно)
-• Диск: {disk.percent}% ({disk.free_gb} GB свободно)
+• RAM: {memory.percent}% ({round(memory.available / (1024**3), 2)} GB свободно)
+• Диск: {disk.percent}% ({round(disk.free / (1024**3), 2)} GB свободно)
 
 🐳 **Docker контейнеры:**
 • Запущено: {docker_metrics.get('running_containers', 'N/A')}
 • Средний CPU: {round(docker_metrics.get('avg_cpu_percent', 0), 1)}%
 • Общая память: {round(docker_metrics.get('total_memory_mb', 0), 1)} MB
 
-⏰ Время: {datetime.now().strftime('%H:%M:%S')}
+⏰ Время: {get_moscow_time()}
 """
         
         # Сохраняем метрики в контексте
@@ -217,35 +283,47 @@ def get_clickhouse_metrics(**context):
         
         metrics = {}
         
-        # HTTP API метрики
+        # HTTP API проверка доступности
         try:
+            print(f"🔍 Подключение к ClickHouse: {ch_host}:{ch_port}")
+            # Простая проверка доступности через ping
             response = requests.get(
-                f'http://{ch_host}:{ch_port}/metrics',
+                f'http://{ch_host}:{ch_port}/ping',
                 auth=(ch_user, ch_password),
                 timeout=10
             )
             if response.status_code == 200:
-                metrics_text = response.text
-                # Парсим основные метрики
-                for line in metrics_text.split('\n'):
-                    if line and not line.startswith('#'):
-                        if 'ClickHouseProfileEvents_Query' in line:
-                            metrics['total_queries'] = line.split()[-1]
-                        elif 'ClickHouseProfileEvents_SelectQuery' in line:
-                            metrics['select_queries'] = line.split()[-1]
-                        elif 'ClickHouseProfileEvents_InsertQuery' in line:
-                            metrics['insert_queries'] = line.split()[-1]
+                print("✅ ClickHouse HTTP API доступен")
+                metrics['http_status'] = 'OK'
+                
+                # Попробуем получить простую статистику через SQL запрос к HTTP API
+                sql_response = requests.get(
+                    f'http://{ch_host}:{ch_port}/',
+                    params={'query': 'SELECT 1'},
+                    auth=(ch_user, ch_password),
+                    timeout=10
+                )
+                if sql_response.status_code == 200:
+                    metrics['sql_http_status'] = 'OK'
+                else:
+                    metrics['sql_http_status'] = f'HTTP {sql_response.status_code}'
+            else:
+                print(f"❌ ClickHouse HTTP API вернул статус: {response.status_code}")
+                metrics['http_error'] = f"HTTP {response.status_code}"
         except Exception as e:
+            print(f"❌ Ошибка подключения к ClickHouse HTTP API: {e}")
             metrics['http_error'] = str(e)
         
         # SQL метрики через clickhouse-connect
         try:
+            print(f"🔍 SQL подключение к ClickHouse: {ch_user}@{ch_host}:{ch_port}")
             client = get_client(
                 host=ch_host,
                 port=int(ch_port),
                 user=ch_user,
                 password=ch_password
             )
+            print("✅ ClickHouse SQL клиент подключен")
             
             # Получаем информацию о таблицах
             tables_info = client.query("""
@@ -265,7 +343,7 @@ def get_clickhouse_metrics(**context):
             queries_info = client.query("""
                 SELECT 
                     count() as active_queries,
-                    max(query_duration_ms) as max_duration_ms
+                    max(elapsed) as max_duration_sec
                 FROM system.processes
                 WHERE query NOT LIKE '%system%'
             """)
@@ -289,6 +367,7 @@ def get_clickhouse_metrics(**context):
             metrics['replicas'] = replicas_info.result_rows
             
         except Exception as e:
+            print(f"❌ Ошибка SQL подключения к ClickHouse: {e}")
             metrics['sql_error'] = str(e)
         
         # Формируем сообщение
@@ -301,15 +380,31 @@ def get_clickhouse_metrics(**context):
 
 🔍 **Активные запросы:**
 • Выполняется: {metrics.get('queries', [0, 0])[0]}
-• Макс. время: {metrics.get('queries', [0, 0])[1]} ms
+• Макс. время: {round(metrics.get('queries', [0, 0])[1], 2) if metrics.get('queries', [0, 0])[1] else 0} сек
 
 📋 **Реплики:**
 • Всего: {len(metrics.get('replicas', []))}
 • Лидеры: {len([r for r in metrics.get('replicas', []) if r[2]])}
-• Только чтение: {len([r for r in metrics.get('replicas', []) if r[3]])}
+• Только чтение: {len([r for r in metrics.get('replicas', []) if r[3]])}"""
 
-⏰ Время: {datetime.now().strftime('%H:%M:%S')}
-"""
+        # Добавляем информацию о статусе подключения
+        status_info = []
+        if 'http_status' in metrics:
+            status_info.append(f"HTTP API: {metrics['http_status']}")
+        elif 'http_error' in metrics:
+            status_info.append(f"HTTP API: ❌ {metrics['http_error']}")
+        
+        if 'sql_error' not in metrics and metrics.get('queries') is not None:
+            status_info.append("SQL: ✅ OK")
+        elif 'sql_error' in metrics:
+            status_info.append(f"SQL: ❌ {metrics['sql_error'][:100]}...")
+
+        if status_info:
+            message += "\n\n🔗 **Статус подключения:**"
+            for info in status_info:
+                message += f"\n• {info}"
+
+        message += f"\n\n⏰ Время: {get_moscow_time()}"
         
         # Сохраняем метрики в контексте
         context['task_instance'].xcom_push(key='clickhouse_metrics', value=metrics)
@@ -326,24 +421,41 @@ def get_clickhouse_metrics(**context):
 def check_dag_failures(**context):
     """
     Проверяет DAG'и на наличие ошибок и отправляет алерты.
+    Совместимо с Airflow 3.0 - использует REST API.
     """
-    from airflow.models import DagRun
-    from airflow.utils.session import provide_session
-    from sqlalchemy.orm import Session
+    import requests
+    from airflow.configuration import conf
     
-    @provide_session
-    def get_failed_dags(session: Session = None):
+    try:
+        # Получаем базовый URL Airflow - используем внутренний адрес контейнера
+        webserver_base_url = conf.get('webserver', 'base_url', fallback='http://localhost:8080')
+        api_url = f"{webserver_base_url}/api/v2"
+
         # Проверяем DAG'и за последние 2 часа
         two_hours_ago = datetime.now() - timedelta(hours=2)
+        start_date_gte = two_hours_ago.isoformat()
         
-        failed_runs = session.query(DagRun).filter(
-            DagRun.state == 'failed',
-            DagRun.start_date >= two_hours_ago
-        ).all()
+        # Запрос к API для получения failed DAG runs
+        dag_runs_response = requests.get(
+            f"{api_url}/dags/~/dagRuns",
+            params={
+                'state': 'failed',
+                'start_date_gte': start_date_gte,
+                'limit': 100
+            },
+            timeout=30
+        )
         
-        return failed_runs
-    
-    failed_dags = get_failed_dags()
+        if dag_runs_response.status_code != 200:
+            print(f"❌ Ошибка API при проверке ошибок DAG'ов: {dag_runs_response.status_code}")
+            failed_dags = []
+        else:
+            dag_runs_data = dag_runs_response.json()
+            failed_dags = dag_runs_data.get('dag_runs', [])
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения списка упавших DAG'ов: {e}")
+        failed_dags = []
     
     if failed_dags:
         # Есть ошибки - формируем алерт
@@ -355,21 +467,31 @@ def check_dag_failures(**context):
 """
         
         for dag_run in failed_dags[:5]:  # Показываем первые 5
-            duration = "N/A"
-            if dag_run.end_date and dag_run.start_date:
-                duration = str(dag_run.end_date - dag_run.start_date)
+            dag_id = dag_run.get('dag_id', 'Unknown')
+            run_id = dag_run.get('dag_run_id', 'Unknown')
+            start_date = dag_run.get('start_date', '')
             
-            alert_message += f"""• **{dag_run.dag_id}**
-  - Время: {dag_run.start_date.strftime('%H:%M:%S')}
-  - Длительность: {duration}
-  - ID запуска: {dag_run.run_id}
+            # Форматируем время start_date
+            if start_date:
+                try:
+                    start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                    formatted_time = start_dt.strftime('%H:%M:%S')
+                except:
+                    formatted_time = start_date
+            else:
+                formatted_time = 'Unknown'
+            
+            alert_message += f"""• **{dag_id}**
+  - Время: {formatted_time}
+  - Длительность: N/A
+  - ID запуска: {run_id}
 
 """
         
         if len(failed_dags) > 5:
             alert_message += f"• ... и еще {len(failed_dags) - 5} DAG'ов с ошибками\n"
         
-        alert_message += f"\n⏰ Время обнаружения: {datetime.now().strftime('%H:%M:%S')}"
+        alert_message += f"\n⏰ Время обнаружения: {get_moscow_time()}"
         
         # Сохраняем алерт в контексте
         context['task_instance'].xcom_push(key='failure_alert', value=alert_message)
@@ -470,8 +592,8 @@ with DAG(
         # Отправка уведомления
         telegram_notification = TelegramOperator(
             task_id='telegram_notification',
-            telegram_conn_id='telegram_default',
-            chat_id=os.environ.get('TELEGRAM_CHAT_ID', ''),
+            token=TELEGRAM_BOT_TOKEN,  # Используем переменную окружения
+            chat_id=TELEGRAM_CHAT_ID,
             text='{{ task_instance.xcom_pull(key="final_message", task_ids="prepare_notification") }}'
         )
         
@@ -533,8 +655,8 @@ with DAG(
         # Отправка уведомления
         telegram_notification = TelegramOperator(
             task_id='telegram_notification',
-            telegram_conn_id='telegram_default',
-            chat_id=os.environ.get('TELEGRAM_CHAT_ID', ''),
+            token=TELEGRAM_BOT_TOKEN,  # Используем переменную окружения
+            chat_id=TELEGRAM_CHAT_ID,
             text='{{ task_instance.xcom_pull(key="final_message", task_ids="prepare_notification") }}'
         )
         

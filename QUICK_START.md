@@ -97,8 +97,8 @@ airflow_fernet_key           = "BjijBVSuN3ik8oHEXMxd_D3TLTn2xsGVYcyFvILY9jk="
 airflow_webserver_secret_key = "j3nkv2GAx2gl+bXsUtERWvPXeZOAs/i8lQglFwg2+F8="
 
 # Telegram уведомления (опционально)
-telegram_bot_token = "7132615581:AAE_HqIiaVG2nkVwkkXbQjspq2Nh5AwMrD4"
-telegram_chat_id   = "-1002715092680"
+telegram_bot_token = "YOUR_BOT_TOKEN_HERE"  # Получите у @BotFather
+telegram_chat_id   = "YOUR_CHAT_ID_HERE"   # Получите у @userinfobot
 ```
 
 ## 🚀 Шаг 3: Запуск развертывания
