@@ -5,5 +5,5 @@ packages:
   - package: dbt-labs/audit_helper
     version: 0.9.0
     
-  - package: calogica/dbt_expectations
-    version: 0.8.0
+  - package: metaplane/dbt_expectations
+    version: 0.10.4
