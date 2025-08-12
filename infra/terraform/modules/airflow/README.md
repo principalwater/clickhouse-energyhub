@@ -46,52 +46,52 @@
 ## Входные переменные (Input Variables)
 
 ### Основные настройки
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `deploy_airflow` | Развернуть Apache Airflow | `bool` | `false` |
-| `airflow_version` | Версия Docker-образа Apache Airflow | `string` | `"3.0.4"` |
-| `redis_version` | Версия Redis для Celery брокера | `string` | `"latest"` |
-| `enable_flower` | Включить Flower для мониторинга Celery | `bool` | `false` |
-| `disable_healthchecks` | Отключить healthcheck'и для worker/triggerer | `bool` | `false` |
+| Имя                    | Описание                                    | Тип      | По умолчанию |
+|------------------------|---------------------------------------------|-----------|--------------|
+| `deploy_airflow`       | Развернуть Apache Airflow                  | `bool`    | `false`      |
+| `airflow_version`      | Версия Docker-образа Apache Airflow        | `string`  | `"3.0.4"`    |
+| `redis_version`        | Версия Redis для Celery брокера            | `string`  | `"latest"`   |
+| `enable_flower`        | Включить Flower для мониторинга Celery     | `bool`    | `false`      |
+| `disable_healthchecks` | Отключить healthcheck'и для worker/triggerer| `bool`    | `false`      |
 
 ### Порты
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `airflow_webserver_port` | Порт веб-интерфейса/API | `number` | `8080` |
-| `airflow_flower_port` | Порт Flower мониторинга | `number` | `5555` |
+| Имя                    | Описание                | Тип      | По умолчанию |
+|------------------------|-------------------------|-----------|--------------|
+| `airflow_webserver_port`| Порт веб-интерфейса/API | `number`  | `8080`       |
+| `airflow_flower_port`  | Порт Flower мониторинга | `number`  | `5555`       |
 
 ### PostgreSQL (внешняя база данных)
-| Имя | Описание | Тип | Обязательно |
-| --- | --- | --- | --- |
-| `airflow_postgres_connection_string` | Строка подключения к PostgreSQL | `string` | ✅ |
-| `postgres_network_name` | Имя Docker-сети PostgreSQL | `string` | ✅ |
+| Имя                            | Описание                        | Тип      | Обязательно |
+|--------------------------------|---------------------------------|-----------|-------------|
+| `airflow_postgres_connection_string`| Строка подключения к PostgreSQL| `string`  | ✅           |
+| `postgres_network_name`        | Имя Docker-сети PostgreSQL     | `string`  | ✅           |
 
 ### Аутентификация Airflow
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `airflow_admin_user` | Администратор Airflow | `string` | `"admin"` |
-| `airflow_admin_password` | Пароль администратора | `string` | **Обязательно** |
-| `airflow_fernet_key` | Fernet ключ шифрования | `string` | **Обязательно** |
-| `airflow_webserver_secret_key` | Секретный ключ веб-сервера | `string` | **Обязательно** |
+| Имя                        | Описание                    | Тип      | По умолчанию |
+|----------------------------|-----------------------------|-----------|--------------|
+| `airflow_admin_user`       | Администратор Airflow       | `string`  | `"admin"`    |
+| `airflow_admin_password`   | Пароль администратора       | `string`  | **Обязательно** |
+| `airflow_fernet_key`       | Fernet ключ шифрования      | `string`  | **Обязательно** |
+| `airflow_webserver_secret_key`| Секретный ключ веб-сервера| `string`  | **Обязательно** |
 
 ### Пути к директориям
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `airflow_dags_path` | Путь к DAG файлам | `string` | `"../../volumes/airflow/dags"` |
-| `airflow_logs_path` | Путь к логам | `string` | `"../../volumes/airflow/logs"` |
-| `airflow_plugins_path` | Путь к плагинам | `string` | `"../../volumes/airflow/plugins"` |
-| `airflow_config_path` | Путь к конфигурации | `string` | `"../../volumes/airflow/config"` |
-| `airflow_redis_data_path` | Путь к данным Redis | `string` | `"../../volumes/airflow/redis"` |
+| Имя                    | Описание                | Тип      | По умолчанию                    |
+|------------------------|-------------------------|-----------|--------------------------------|
+| `airflow_dags_path`    | Путь к DAG файлам       | `string`  | `"../../volumes/airflow/dags"`  |
+| `airflow_logs_path`    | Путь к логам            | `string`  | `"../../volumes/airflow/logs"`  |
+| `airflow_plugins_path` | Путь к плагинам         | `string`  | `"../../volumes/airflow/plugins"`|
+| `airflow_config_path`  | Путь к конфигурации     | `string`  | `"../../volumes/airflow/config"` |
+| `airflow_redis_data_path`| Путь к данным Redis    | `string`  | `"../../volumes/airflow/redis"`  |
 
 ### Интеграция с внешними сервисами
-| Имя | Описание | Тип | Обязательно |
-| --- | --- | --- | --- |
-| `clickhouse_network_name` | Имя Docker-сети ClickHouse | `string` | ✅ |
-| `clickhouse_bi_user` | BI пользователь ClickHouse | `string` | ✅ |
-| `clickhouse_bi_password` | Пароль BI пользователя | `string` | ✅ |
-| `kafka_network_name` | Имя Docker-сети Kafka | `string` | ✅ |
-| `kafka_topic_1min` | Топик 1-минутных данных | `string` | ✅ |
-| `kafka_topic_5min` | Топик 5-минутных данных | `string` | ✅ |
+| Имя                    | Описание                | Тип      | Обязательно |
+|------------------------|-------------------------|-----------|-------------|
+| `clickhouse_network_name`| Имя Docker-сети ClickHouse| `string` | ✅           |
+| `clickhouse_bi_user`   | BI пользователь ClickHouse| `string` | ✅           |
+| `clickhouse_bi_password`| Пароль BI пользователя | `string` | ✅           |
+| `kafka_network_name`   | Имя Docker-сети Kafka  | `string` | ✅           |
+| `kafka_topic_1min`     | Топик 1-минутных данных| `string` | ✅           |
+| `kafka_topic_5min`     | Топик 5-минутных данных| `string` | ✅           |
 
 ---
 

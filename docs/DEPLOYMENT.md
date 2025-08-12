@@ -164,7 +164,7 @@ clickhouse-energyhub/
 │   ├── kafka/                   # Данные Kafka
 │   └── redis/                   # Данные Redis
 ├── deploy.sh                     # Скрипт развертывания
-└── DEPLOYMENT.md                 # Это руководство
+└── DEPLOYMENT.md                 # Это руководство (находится в docs/)
 ```
 
 ## 🗄️ Организация данных MinIO

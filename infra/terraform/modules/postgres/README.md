@@ -39,41 +39,41 @@
 ## Входные переменные (Input Variables)
 
 ### Основные настройки
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `enable_postgres` | Включить PostgreSQL | `bool` | `true` |
-| `postgres_version` | Версия Docker-образа PostgreSQL | `string` | `"16"` |
-| `postgres_data_path` | Путь к данным PostgreSQL | `string` | `"../../volumes/postgres/data"` |
-| `postgres_superuser_password` | Пароль суперпользователя | `string` | **Обязательно** |
-| `postgres_restore_enabled` | Включить восстановление | `bool` | `true` |
+| Имя                        | Описание                    | Тип      | По умолчанию                    |
+|----------------------------|-----------------------------|-----------|--------------------------------|
+| `enable_postgres`          | Включить PostgreSQL         | `bool`    | `true`                          |
+| `postgres_version`         | Версия Docker-образа PostgreSQL| `string` | `"16"`                          |
+| `postgres_data_path`       | Путь к данным PostgreSQL    | `string`  | `"../../volumes/postgres/data"`  |
+| `postgres_superuser_password`| Пароль суперпользователя   | `string`  | **Обязательно**                 |
+| `postgres_restore_enabled` | Включить восстановление     | `bool`    | `true`                          |
 
 ### Флаги сервисов
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `enable_metabase` | Включить поддержку Metabase | `bool` | `false` |
-| `enable_superset` | Включить поддержку Superset | `bool` | `false` |
-| `enable_airflow` | Включить поддержку Airflow | `bool` | `false` |
+| Имя              | Описание                    | Тип      | По умолчанию |
+|------------------|-----------------------------|-----------|--------------|
+| `enable_metabase`| Включить поддержку Metabase | `bool`    | `false`      |
+| `enable_superset`| Включить поддержку Superset | `bool`    | `false`      |
+| `enable_airflow` | Включить поддержку Airflow  | `bool`    | `false`      |
 
 ### Metabase настройки
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `metabase_pg_user` | Пользователь Metabase | `string` | `"metabase"` |
-| `metabase_pg_password` | Пароль Metabase | `string` | **Обязательно** |
-| `metabase_pg_db` | База данных Metabase | `string` | `"metabaseappdb"` |
+| Имя                  | Описание                | Тип      | По умолчанию        |
+|----------------------|-------------------------|-----------|---------------------|
+| `metabase_pg_user`   | Пользователь Metabase  | `string`  | `"metabase"`        |
+| `metabase_pg_password`| Пароль Metabase        | `string`  | **Обязательно**     |
+| `metabase_pg_db`     | База данных Metabase   | `string`  | `"metabaseappdb"`   |
 
 ### Superset настройки
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `superset_pg_user` | Пользователь Superset | `string` | `"superset"` |
-| `superset_pg_password` | Пароль Superset | `string` | **Обязательно** |
-| `superset_pg_db` | База данных Superset | `string` | `"superset"` |
+| Имя                    | Описание                | Тип      | По умолчанию    |
+|------------------------|-------------------------|-----------|-----------------|
+| `superset_pg_user`     | Пользователь Superset  | `string`  | `"superset"`    |
+| `superset_pg_password` | Пароль Superset        | `string`  | **Обязательно** |
+| `superset_pg_db`       | База данных Superset   | `string`  | `"superset"`    |
 
 ### Airflow настройки
-| Имя | Описание | Тип | По умолчанию |
-| --- | --- | --- | --- |
-| `airflow_pg_user` | Пользователь Airflow | `string` | `"airflow"` |
-| `airflow_pg_password` | Пароль Airflow | `string` | **Обязательно** |
-| `airflow_pg_db` | База данных Airflow | `string` | `"airflow"` |
+| Имя                    | Описание                | Тип      | По умолчанию  |
+|------------------------|-------------------------|-----------|---------------|
+| `airflow_pg_user`      | Пользователь Airflow   | `string`  | `"airflow"`   |
+| `airflow_pg_password`  | Пароль Airflow         | `string`  | **Обязательно**|
+| `airflow_pg_db`        | База данных Airflow    | `string`  | `"airflow"`   |
 
 ---
 

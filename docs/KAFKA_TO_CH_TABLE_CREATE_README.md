@@ -31,22 +31,22 @@ energy_kafka.{table_name}_kafka (Kafka Engine)
 
 ### Обязательные параметры
 
-| Параметр | Тип | Описание | Пример |
-|----------|-----|----------|---------|
-| `kafka_topic` | string | Название Kafka топика | `"energy_data_1min"` |
-| `target_table_name` | string | Название целевой таблицы | `"river_flow"` |
-| `schema` | object | Схема данных (поле → тип) | `{"timestamp": "String", "value": "Float64"}` |
+| Параметр           | Тип     | Описание                    | Пример                                    |
+|--------------------|----------|-----------------------------|-------------------------------------------|
+| `kafka_topic`      | string   | Название Kafka топика       | `"energy_data_1min"`                     |
+| `target_table_name`| string   | Название целевой таблицы    | `"river_flow"`                           |
+| `schema`           | object   | Схема данных (поле → тип)   | `{"timestamp": "String", "value": "Float64"}` |
 
 ### Опциональные параметры
 
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
-| `dwh_layer` | string | `"raw"` | Слой DWH: raw, ods, dds, cdm |
-| `sort_key` | string | `"timestamp"` | Ключ сортировки для таблиц |
-| `partition_key` | string | `"toYYYYMM(timestamp)"` | Ключ партиционирования |
-| `shard_key` | string | `"xxHash64(timestamp)"` | Ключ шардирования |
-| `cluster_name` | string | `"dwh_prod"` | Название кластера ClickHouse |
-| `kafka_broker` | string | `"kafka:9092"` | Адрес Kafka брокера |
+| Параметр        | Тип     | По умолчанию              | Описание                                |
+|-----------------|----------|---------------------------|-----------------------------------------|
+| `dwh_layer`     | string   | `"raw"`                   | Слой DWH: raw, ods, dds, cdm           |
+| `sort_key`      | string   | `"timestamp"`             | Ключ сортировки для таблиц              |
+| `partition_key` | string   | `"toYYYYMM(timestamp)"`   | Ключ партиционирования                  |
+| `shard_key`     | string   | `"xxHash64(timestamp)"`   | Ключ шардирования                       |
+| `cluster_name`  | string   | `"dwh_prod"`              | Название кластера ClickHouse            |
+| `kafka_broker`  | string   | `"kafka:9092"`            | Адрес Kafka брокера                     |
 
 ## Примеры использования
 

@@ -27,36 +27,135 @@ ClickHouse EnergyHub - это полнофункциональная платф�
 
 Система построена по принципам **Data Vault 2.0** с элементами **Kimball Dimensional Modeling**:
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Raw Layer     │    │   ODS Layer     │    │   DDS Layer     │    │   CDM Layer     │
-│                 │    │                 │    │                 │    │                 │
-│ • Сырые данные  │───▶│ • Очистка       │───▶│ • Дедупликация  │───▶│ • Аналитика     │
-│ • Иммутабельность│   │ • Стандартизация│    │ • Бизнес-логика │    │ • KPI & метрики │
-│ • Аудит         │    │ • Валидация     │    │ • Интеграция    │    │ • Денормализация│
-└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
-                                    │
-                                    ▼
-                    ┌─────────────────────────────────────┐
-                    │      ClickHouse Cluster dwh_prod    │
-                    │                                     │
-                    │  ┌─────────────┐  ┌─────────────┐   │
-                    │  │   Shard 1   │  │   Shard 2   │   │
-                    │  │ Replica 1,2 │  │ Replica 1,2 │   │
-                    │  └─────────────┘  └─────────────┘   │
-                    │                                     │
-                    │  ┌─────────────────────────────┐    │
-                    │  │     3x ClickHouse Keeper    │    │
-                    │  └─────────────────────────────┘    │
-                    └─────────────────────────────────────┘
+```mermaid
+graph TB
+    %% Источники данных
+    subgraph "🌊 Data Sources"
+        KAFKA[Kafka Topics<br/>energy_data_1min<br/>energy_data_5min]
+        API[External APIs<br/>Energy Market<br/>River Sensors]
+        FILES[File Sources<br/>CSV, JSON, XML]
+    end
+    
+    %% Слои данных
+    subgraph "📊 Data Layers"
+        subgraph "📥 Raw Layer"
+            RAW[Сырые данные<br/>• Иммутабельность<br/>• Полнота<br/>• Аудит]
+        end
+        
+        subgraph "🔧 ODS Layer"
+            ODS[Операционные данные<br/>• Очистка<br/>• Стандартизация<br/>• Валидация]
+        end
+        
+        subgraph "🧹 DDS Layer"
+            DDS[Детализированные данные<br/>• Дедупликация<br/>• Бизнес-логика<br/>• Интеграция]
+        end
+        
+        subgraph "📈 CDM Layer"
+            CDM[Аналитические кубы<br/>• KPI & метрики<br/>• Денормализация<br/>• Агрегация]
+        end
+    end
+    
+    %% ClickHouse кластер
+    subgraph "🗄️ ClickHouse Cluster dwh_prod"
+        subgraph "Shard 1"
+            CH1[clickhouse-01<br/>Replica 1]
+            CH3[clickhouse-03<br/>Replica 2]
+        end
+        subgraph "Shard 2"
+            CH2[clickhouse-02<br/>Replica 1]
+            CH4[clickhouse-04<br/>Replica 2]
+        end
+        subgraph "Coordination"
+            CHK1[Keeper 1]
+            CHK2[Keeper 2]
+            CHK3[Keeper 3]
+        end
+    end
+    
+    %% BI инструменты
+    subgraph "📊 BI & Analytics"
+        SUPERSET[Apache Superset<br/>Аналитические дашборды]
+        METABASE[Metabase<br/>Самообслуживание]
+        GRAFANA[Grafana<br/>Мониторинг]
+    end
+    
+    %% Потоки данных
+    KAFKA --> RAW
+    API --> RAW
+    FILES --> RAW
+    
+    RAW --> ODS
+    ODS --> DDS
+    DDS --> CDM
+    
+    %% ClickHouse кластер
+    RAW -.-> CH1
+    RAW -.-> CH3
+    ODS -.-> CH2
+    ODS -.-> CH4
+    
+    %% BI доступ
+    CDM --> SUPERSET
+    CDM --> METABASE
+    CDM --> GRAFANA
+    
+    %% Стили
+    classDef source fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef layer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef cluster fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef bi fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    
+    class KAFKA,API,FILES source
+    class RAW,ODS,DDS,CDM layer
+    class CH1,CH2,CH3,CH4,CHK1,CHK2,CHK3 cluster
+    class SUPERSET,METABASE,GRAFANA bi
 ```
 
 ### 🔄 Поток данных
 
-```
-External Sources → Raw → ODS → DDS → CDM → BI Tools
-     ↓           ↓     ↓     ↓     ↓      ↓
-  Ingestion  Validation Cleaning Business Analytics Reporting
+```mermaid
+flowchart LR
+    subgraph "🌊 Sources"
+        S1[Kafka Streams]
+        S2[External APIs]
+        S3[File Uploads]
+    end
+    
+    subgraph "🔄 Processing"
+        INGEST[Ingestion<br/>ClickHouse]
+        VALIDATE[Validation<br/>Data Quality]
+        CLEAN[Cleaning<br/>Standardization]
+        BUSINESS[Business Logic<br/>Transformation]
+        ANALYTICS[Analytics<br/>Aggregation]
+    end
+    
+    subgraph "📊 Output"
+        REPORT[Reporting<br/>Dashboards]
+        API_OUT[API Endpoints]
+        EXPORT[Data Export]
+    end
+    
+    S1 --> INGEST
+    S2 --> INGEST
+    S3 --> INGEST
+    
+    INGEST --> VALIDATE
+    VALIDATE --> CLEAN
+    CLEAN --> BUSINESS
+    BUSINESS --> ANALYTICS
+    
+    ANALYTICS --> REPORT
+    ANALYTICS --> API_OUT
+    ANALYTICS --> EXPORT
+    
+    %% Стили
+    classDef source fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef process fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef output fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    
+    class S1,S2,S3 source
+    class INGEST,VALIDATE,CLEAN,BUSINESS,ANALYTICS process
+    class REPORT,API_OUT,EXPORT output
 ```
 
 ## 🚀 Быстрый старт
@@ -72,7 +171,7 @@ cd clickhouse-energyhub
 ./deploy.sh
 ```
 
-**📖 Подробный туториал:** [docs/QUICK_START.md](docs/QUICK_START.md)
+**📖 Подробный туториал:** [QUICK_START.md](QUICK_START.md)
 
 ## 📚 Документация
 
@@ -86,16 +185,25 @@ cd clickhouse-energyhub
 
 - **[🔄 DAG Deduplication Pipeline](docs/README_deduplication.md)** - Автоматическая очистка дублей и обновление источников
 - **[💾 ClickHouse Backup Pipeline](docs/README_clickhouse_backup.md)** - Система резервного копирования и восстановления
+- **[🚀 Руководство по развертыванию](docs/DEPLOYMENT.md)** - Подробное руководство по развертыванию системы
+- **[☁️ Настройка Apache Airflow](docs/AIRFLOW_SETUP.md)** - Конфигурация и настройка Airflow
+- **[💾 Руководство по резервному копированию](docs/BACKUP_GUIDE.md)** - Система бэкапов и восстановления
+- **[📊 Создание таблиц из Kafka](docs/KAFKA_TO_CH_TABLE_CREATE_README.md)** - DAG для динамического создания таблиц
 
 ### 📁 Структура проекта
 
 ```
 clickhouse-energyhub/
+├── README.md                  # Основной файл проекта
+├── QUICK_START.md            # Быстрый старт и развертывание
 ├── 📚 docs/                    # Документация проекта
-│   ├── QUICK_START.md         # Быстрый старт
 │   ├── ARCHITECTURE.md        # Архитектура DWH
 │   ├── DBT_INTEGRATION.md     # Интеграция dbt
 │   ├── CI_CD.md               # CI/CD пайплайн
+│   ├── DEPLOYMENT.md          # Руководство по развертыванию
+│   ├── AIRFLOW_SETUP.md       # Настройка Apache Airflow
+│   ├── BACKUP_GUIDE.md        # Руководство по резервному копированию
+│   ├── KAFKA_TO_CH_TABLE_CREATE_README.md # Создание таблиц из Kafka
 │   ├── README_deduplication.md # DAG дедупликации
 │   └── README_clickhouse_backup.md # DAG бэкапов
 ├── 🏗️ infra/                   # Инфраструктура
