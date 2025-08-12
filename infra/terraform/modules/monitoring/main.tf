@@ -22,7 +22,7 @@ resource "docker_container" "portainer" {
   image    = docker_image.portainer.name
   hostname = "portainer"
   restart  = "unless-stopped"
-  
+
   # Правильная команда запуска для Portainer CE
   command = ["--no-analytics"]
 

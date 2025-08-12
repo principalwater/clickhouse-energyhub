@@ -54,7 +54,7 @@ output "dbt_clickhouse_connection" {
 output "dbt_versions" {
   description = "Версии dbt компонентов"
   value = {
-    dbt_core     = var.dbt_core_version
+    dbt_core       = var.dbt_core_version
     dbt_clickhouse = var.dbt_version
   }
 }

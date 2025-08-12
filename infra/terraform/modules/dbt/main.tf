@@ -5,19 +5,19 @@ locals {
   dbt_core_version = var.dbt_core_version
   dbt_port         = var.dbt_port
   dbt_host         = var.dbt_host
-  
+
   # Пути для dbt - используем абсолютные пути
-  dbt_base_path    = abspath(var.dbt_base_path)
-  dbt_profiles_path = "${abspath(var.dbt_base_path)}/profiles"
-  dbt_logs_path    = "${abspath(var.dbt_base_path)}/logs"
-  dbt_target_path  = "${abspath(var.dbt_base_path)}/target"
-  dbt_models_path  = "${abspath(var.dbt_base_path)}/models"
-  dbt_macros_path  = "${abspath(var.dbt_base_path)}/macros"
-  dbt_tests_path   = "${abspath(var.dbt_base_path)}/tests"
-  dbt_seeds_path   = "${abspath(var.dbt_base_path)}/seeds"
+  dbt_base_path      = abspath(var.dbt_base_path)
+  dbt_profiles_path  = "${abspath(var.dbt_base_path)}/profiles"
+  dbt_logs_path      = "${abspath(var.dbt_base_path)}/logs"
+  dbt_target_path    = "${abspath(var.dbt_base_path)}/target"
+  dbt_models_path    = "${abspath(var.dbt_base_path)}/models"
+  dbt_macros_path    = "${abspath(var.dbt_base_path)}/macros"
+  dbt_tests_path     = "${abspath(var.dbt_base_path)}/tests"
+  dbt_seeds_path     = "${abspath(var.dbt_base_path)}/seeds"
   dbt_snapshots_path = "${abspath(var.dbt_base_path)}/snapshots"
-  dbt_analysis_path = "${abspath(var.dbt_base_path)}/analysis"
-  
+  dbt_analysis_path  = "${abspath(var.dbt_base_path)}/analysis"
+
   # ClickHouse connection settings
   clickhouse_host     = var.clickhouse_host
   clickhouse_port     = var.clickhouse_port
@@ -86,7 +86,7 @@ resource "null_resource" "create_clickhouse_database" {
       echo "DWH layer databases created successfully"
     EOT
   }
-  
+
   depends_on = [null_resource.mk_dbt_dirs]
 }
 
@@ -186,7 +186,7 @@ resource "null_resource" "create_raw_test_data" {
       echo "Raw test data created successfully"
     EOT
   }
-  
+
   depends_on = [null_resource.create_clickhouse_database]
 }
 
@@ -202,17 +202,17 @@ resource "null_resource" "create_dbt_structure" {
       mkdir -p ${local.dbt_analysis_path}
     EOT
   }
-  
+
   depends_on = [null_resource.create_raw_test_data]
 }
 
 # Создание dbt_project.yml
 resource "local_file" "dbt_project_yml" {
   content = templatefile("${path.module}/templates/dbt_project.yml.tpl", {
-    project_name = local.dbt_project_name
+    project_name        = local.dbt_project_name
     clickhouse_database = local.clickhouse_database
   })
-  filename = "${local.dbt_base_path}/dbt_project.yml"
+  filename   = "${local.dbt_base_path}/dbt_project.yml"
   depends_on = [null_resource.create_clickhouse_database]
 }
 
@@ -225,7 +225,7 @@ resource "local_file" "profiles_yml" {
     clickhouse_user     = local.clickhouse_user
     clickhouse_password = local.clickhouse_password
   })
-  filename = "${local.dbt_profiles_path}/profiles.yml"
+  filename   = "${local.dbt_profiles_path}/profiles.yml"
   depends_on = [null_resource.create_clickhouse_database]
 }
 
@@ -242,7 +242,7 @@ resource "null_resource" "setup_dbt_environment" {
       echo "dbt environment setup completed"
     EOT
   }
-  
+
   depends_on = [
     local_file.dbt_project_yml,
     local_file.profiles_yml,
@@ -252,32 +252,32 @@ resource "null_resource" "setup_dbt_environment" {
 
 # Создание базового макроса для DQ проверок
 resource "local_file" "dq_macros_yml" {
-  content = templatefile("${path.module}/templates/dq_macros.yml.tpl", {})
-  filename = "${local.dbt_macros_path}/dq_macros.yml"
+  content    = templatefile("${path.module}/templates/dq_macros.yml.tpl", {})
+  filename   = "${local.dbt_macros_path}/dq_macros.yml"
   depends_on = [null_resource.create_dbt_structure]
 }
 
 # Создание базового теста для DQ проверок
 resource "local_file" "dq_test_sql" {
-  content = templatefile("${path.module}/templates/dq_test.sql.tpl", {})
-  filename = "${local.dbt_tests_path}/dq_test.sql"
+  content    = templatefile("${path.module}/templates/dq_test.sql.tpl", {})
+  filename   = "${local.dbt_tests_path}/dq_test.sql"
   depends_on = [null_resource.create_dbt_structure]
 }
 
 # Создание README для dbt проекта
 resource "local_file" "dbt_readme" {
   content = templatefile("${path.module}/templates/README.md.tpl", {
-    project_name = local.dbt_project_name
+    project_name        = local.dbt_project_name
     clickhouse_database = local.clickhouse_database
-    clickhouse_user = local.clickhouse_user
+    clickhouse_user     = local.clickhouse_user
   })
-  filename = "${local.dbt_base_path}/README.md"
+  filename   = "${local.dbt_base_path}/README.md"
   depends_on = [null_resource.create_dbt_structure]
 }
 
 # Создание скрипта активации dbt окружения
 resource "local_file" "activate_dbt_env" {
-  content = <<-EOT
+  content    = <<-EOT
 #!/bin/bash
 # Скрипт для активации dbt окружения
 cd ${local.dbt_base_path}
@@ -301,7 +301,7 @@ echo "  dbt debug - проверка конфигурации"
 echo "  dbt compile - компиляция моделей"
 echo "  dbt list - список моделей"
 EOT
-  filename = "${local.dbt_base_path}/activate_dbt.sh"
+  filename   = "${local.dbt_base_path}/activate_dbt.sh"
   depends_on = [null_resource.setup_dbt_environment]
 }
 
@@ -310,6 +310,6 @@ resource "null_resource" "make_activate_script_executable" {
   provisioner "local-exec" {
     command = "chmod +x ${local.dbt_base_path}/activate_dbt.sh"
   }
-  
+
   depends_on = [local_file.activate_dbt_env]
 }

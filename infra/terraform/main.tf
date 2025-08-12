@@ -297,12 +297,12 @@ module "dbt" {
   clickhouse_database = "default"
   clickhouse_user     = var.super_user_name
   clickhouse_password = var.super_user_password
-  
+
   # Учетные данные суперпользователя для создания объектов
   super_user_name     = var.super_user_name
   super_user_password = var.super_user_password
 
   depends_on = [module.clickhouse_cluster]
-  
+
   count = var.deploy_dbt ? 1 : 0
 }
