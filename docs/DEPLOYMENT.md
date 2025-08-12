@@ -24,8 +24,8 @@ cd clickhouse-energyhub
 # Развертывание с локальным хранилищем (по умолчанию)
 ./deploy.sh
 
-# Или с S3 хранилищем
-./deploy.sh s3_storage
+# Или с удаленным S3 хранилищем (требует настройки)
+# ./deploy.sh s3_storage
 ```
 
 Скрипт автоматически:
@@ -136,7 +136,7 @@ clickhouse-energyhub/
 │   ├── profiles/                 # Профили подключения
 │   │   └── profiles.yml         # Конфигурация ClickHouse
 │   ├── models/                   # Модели данных
-│   │   ├── staging/             # Staging модели
+│   │   ├── raw/                 # Raw модели
 │   │   ├── intermediate/        # Промежуточные модели
 │   │   └── marts/               # Data marts
 │   ├── macros/                   # Макросы
@@ -203,7 +203,7 @@ volumes/minio/
 ```yaml
 vars:
   clickhouse_database: "otus_default"
-  clickhouse_cluster: "dwh_prod"
+  clickhouse_cluster: "default"
   dq_enabled: true
   dq_schema: "dq_checks"
 ```

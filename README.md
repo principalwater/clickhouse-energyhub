@@ -25,13 +25,13 @@ ClickHouse EnergyHub - это полнофункциональная платф�
 
 ## 🏗️ Архитектура
 
-Система построена по принципам **Data Vault 2.0** с элементами **Kimball Dimensional Modeling**:
+Система построена по принципам современной архитектуры Data Warehouse:
 
 ```mermaid
 graph TB
     %% Источники данных
     subgraph "🌊 Data Sources"
-        KAFKA[Kafka Topics<br/>energy_data_1min<br/>energy_data_5min]
+        KAFKA[Kafka Topics<br/>v7.4.0<br/>energy_data_1min<br/>energy_data_5min]
         API[External APIs<br/>Energy Market<br/>River Sensors]
         FILES[File Sources<br/>CSV, JSON, XML]
     end
@@ -55,28 +55,35 @@ graph TB
         end
     end
     
+    %% Инструменты обработки
+    subgraph "🔄 Data Processing"
+        AIRFLOW[Apache Airflow<br/>v3.0.4]
+        DBT[dbt Core<br/>v1.10.7<br/>dbt-clickhouse v1.9.2]
+        MINIO[MinIO<br/>v2025-07-23]
+    end
+    
     %% ClickHouse кластер
-    subgraph "🗄️ ClickHouse Cluster dwh_prod"
+    subgraph "🗄️ ClickHouse Cluster (Local)"
         subgraph "Shard 1"
-            CH1[clickhouse-01<br/>Replica 1]
-            CH3[clickhouse-03<br/>Replica 2]
+            CH1[clickhouse-01<br/>v25.5.2-alpine<br/>Replica 1]
+            CH3[clickhouse-03<br/>v25.5.2-alpine<br/>Replica 2]
         end
         subgraph "Shard 2"
-            CH2[clickhouse-02<br/>Replica 1]
-            CH4[clickhouse-04<br/>Replica 2]
+            CH2[clickhouse-02<br/>v25.5.2-alpine<br/>Replica 1]
+            CH4[clickhouse-04<br/>v25.5.2-alpine<br/>Replica 2]
         end
         subgraph "Coordination"
-            CHK1[Keeper 1]
-            CHK2[Keeper 2]
-            CHK3[Keeper 3]
+            CHK1[Keeper 1<br/>v25.5.2-alpine]
+            CHK2[Keeper 2<br/>v25.5.2-alpine]
+            CHK3[Keeper 3<br/>v25.5.2-alpine]
         end
     end
     
     %% BI инструменты
     subgraph "📊 BI & Analytics"
-        SUPERSET[Apache Superset<br/>Аналитические дашборды]
-        METABASE[Metabase<br/>Самообслуживание]
-        GRAFANA[Grafana<br/>Мониторинг]
+        SUPERSET[Apache Superset<br/>v3.1.1]
+        METABASE[Metabase<br/>v0.49.8]
+        POSTGRES[PostgreSQL<br/>v16]
     end
     
     %% Потоки данных
@@ -88,6 +95,11 @@ graph TB
     ODS --> DDS
     DDS --> CDM
     
+    %% Обработка данных
+    RAW --> AIRFLOW
+    AIRFLOW --> DBT
+    DBT --> MINIO
+    
     %% ClickHouse кластер
     RAW -.-> CH1
     RAW -.-> CH3
@@ -97,18 +109,20 @@ graph TB
     %% BI доступ
     CDM --> SUPERSET
     CDM --> METABASE
-    CDM --> GRAFANA
+    CDM --> POSTGRES
     
     %% Стили
     classDef source fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef layer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef cluster fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef processing fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef cluster fill:#fce4ec,stroke:#880e4f,stroke-width:3px
     classDef bi fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     
     class KAFKA,API,FILES source
     class RAW,ODS,DDS,CDM layer
+    class AIRFLOW,DBT,MINIO processing
     class CH1,CH2,CH3,CH4,CHK1,CHK2,CHK3 cluster
-    class SUPERSET,METABASE,GRAFANA bi
+    class SUPERSET,METABASE,POSTGRES bi
 ```
 
 ### 🔄 Поток данных
@@ -194,30 +208,30 @@ cd clickhouse-energyhub
 
 ```
 clickhouse-energyhub/
-├── README.md                  # Основной файл проекта
-├── QUICK_START.md            # Быстрый старт и развертывание
-├── 📚 docs/                    # Документация проекта
-│   ├── ARCHITECTURE.md        # Архитектура DWH
-│   ├── DBT_INTEGRATION.md     # Интеграция dbt
-│   ├── CI_CD.md               # CI/CD пайплайн
-│   ├── DEPLOYMENT.md          # Руководство по развертыванию
-│   ├── AIRFLOW_SETUP.md       # Настройка Apache Airflow
-│   ├── BACKUP_GUIDE.md        # Руководство по резервному копированию
-│   ├── KAFKA_TO_CH_TABLE_CREATE_README.md # Создание таблиц из Kafka
-│   ├── README_deduplication.md # DAG дедупликации
-│   └── README_clickhouse_backup.md # DAG бэкапов
-├── 🏗️ infra/                   # Инфраструктура
-│   ├── terraform/             # Terraform конфигурация
-│   └── docker/                # Docker конфигурация
-├── 🔄 airflow/                 # Apache Airflow
-│   └── dags/                  # DAG'и для оркестрации
-├── 🧹 dbt/                     # dbt проекты
-│   ├── models/                # Модели данных
-│   ├── tests/                 # Тесты
-│   └── tools/                 # Утилиты
-├── 📜 scripts/                 # Скрипты автоматизации
-├── 🧪 tests/                   # Тесты проекта
-└── 📋 deploy.sh                # Скрипт развертывания
+├── README.md                                    # Основной файл проекта
+├── QUICK_START.md                               # Быстрый старт и развертывание
+├── 📚 docs/                                     # Документация проекта
+│   ├── ARCHITECTURE.md                          # Архитектура DWH
+│   ├── DBT_INTEGRATION.md                       # Интеграция dbt
+│   ├── CI_CD.md                                 # CI/CD пайплайн
+│   ├── DEPLOYMENT.md                            # Руководство по развертыванию
+│   ├── AIRFLOW_SETUP.md                         # Настройка Apache Airflow
+│   ├── BACKUP_GUIDE.md                          # Руководство по резервному копированию
+│   ├── KAFKA_TO_CH_TABLE_CREATE_README.md      # Создание таблиц из Kafka
+│   ├── README_deduplication.md                  # DAG дедупликации
+│   └── README_clickhouse_backup.md              # DAG бэкапов
+├── 🏗️ infra/                                    # Инфраструктура
+│   ├── terraform/                               # Terraform конфигурация
+│   └── docker/                                  # Docker конфигурация
+├── 🔄 airflow/                                  # Apache Airflow
+│   └── dags/                                    # DAG'и для оркестрации
+├── 🧹 dbt/                                      # dbt проекты
+│   ├── models/                                  # Модели данных
+│   ├── tests/                                   # Тесты
+│   └── tools/                                   # Утилиты
+├── 📜 scripts/                                  # Скрипты автоматизации
+├── 🧪 tests/                                    # Тесты проекта
+└── 📋 deploy.sh                                 # Скрипт развертывания
 ```
 
 ## 🌟 Основные компоненты
@@ -238,10 +252,12 @@ clickhouse-energyhub/
 
 ### 🧹 dbt (data build tool)
 
-- **Трансформация данных** через SQL
-- **Автоматическое тестирование** качества данных
+- **Трансформация данных** через SQL с поддержкой ClickHouse
+- **Автоматическое тестирование** качества данных (DQ проверки)
 - **Документация** моделей и источников
 - **Версионирование** схемы данных
+- **Архитектурные слои**: Raw → ODS → DDS → CDM
+- **Макросы** для оптимизации ClickHouse (ReplicatedMergeTree, Distributed)
 
 ### 📊 Визуализация
 

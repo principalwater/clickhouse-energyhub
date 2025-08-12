@@ -60,7 +60,7 @@ terraform init
 2. **Настройка переменных**
 ```bash
 # Скопируйте и настройте переменные
-cp env/terraform.tfvars.example terraform.tfvars
+cp terraform/terraform.tfvars.example terraform.tfvars
 ```
 
 3. **Развертывание**
