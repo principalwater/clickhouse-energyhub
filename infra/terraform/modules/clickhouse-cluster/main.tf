@@ -441,7 +441,7 @@ resource "docker_container" "clickhouse_backup" {
     "S3_BUCKET=${var.bucket_backup}",
     "S3_ACCESS_KEY=${var.minio_root_user}",
     "S3_SECRET_KEY=${var.minio_root_password}",
-    "S3_ENDPOINT=${var.storage_type == "local_storage" ? "http://minio-local-backup:${var.local_backup_minio_port}" : "http://${var.remote_host_name}:${var.remote_minio_port}"}",
+    "S3_ENDPOINT=${var.storage_type == "local_storage" ? "http://minio-local-backup:9000" : "http://${var.remote_host_name}:${var.remote_minio_port}"}",
     "S3_REGION=us-east-1",
     "S3_DISABLE_SSL=true",
     "S3_FORCE_PATH_STYLE=true"

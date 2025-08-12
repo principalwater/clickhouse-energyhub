@@ -3,7 +3,7 @@ clickhouse_energyhub:
   outputs:
     dev:
       type: clickhouse
-      host: localhost
+      host: ${clickhouse_host}
       port: ${clickhouse_port}
       database: ${clickhouse_database}
       user: ${clickhouse_user}
@@ -20,7 +20,7 @@ clickhouse_energyhub:
         
     prod:
       type: clickhouse
-      host: localhost
+      host: ${clickhouse_host}
       port: ${clickhouse_port}
       database: ${clickhouse_database}
       user: ${clickhouse_user}
@@ -37,7 +37,7 @@ clickhouse_energyhub:
         
     test:
       type: clickhouse
-      host: localhost
+      host: ${clickhouse_host}
       port: ${clickhouse_port}
       database: ${clickhouse_database}
       user: ${clickhouse_user}

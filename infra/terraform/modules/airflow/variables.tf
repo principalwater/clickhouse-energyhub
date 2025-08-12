@@ -85,7 +85,7 @@ variable "airflow_webserver_secret_key" {
 variable "airflow_dags_path" {
   description = "Путь к директории с DAG файлами Airflow."
   type        = string
-  default     = "../../volumes/airflow/dags"
+  default     = "../../airflow/dags"
 }
 
 variable "airflow_logs_path" {
@@ -106,6 +106,12 @@ variable "airflow_config_path" {
   default     = "../../volumes/airflow/config"
 }
 
+variable "scripts_path" {
+  description = "Путь к директории со скриптами для Airflow."
+  type        = string
+  default     = "../../scripts"
+}
+
 # ---- Section: Интеграция с ClickHouse ----
 variable "clickhouse_network_name" {
   description = "Имя Docker-сети ClickHouse для интеграции."
@@ -119,6 +125,17 @@ variable "clickhouse_bi_user" {
 
 variable "clickhouse_bi_password" {
   description = "Пароль BI пользователя ClickHouse для подключения Airflow."
+  type        = string
+  sensitive   = true
+}
+
+variable "clickhouse_super_user" {
+  description = "Имя суперпользователя ClickHouse для backup операций."
+  type        = string
+}
+
+variable "clickhouse_super_password" {
+  description = "Пароль суперпользователя ClickHouse для backup операций."
   type        = string
   sensitive   = true
 }
