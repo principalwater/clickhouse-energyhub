@@ -176,16 +176,16 @@ jobs:
           cd dbt
           dbt --version
           
-      - name: Install dbt dependencies
-        run: |
-          cd dbt
-          dbt deps --profiles-dir profiles --no-version-check
-          
       - name: Create dbt project structure
         run: |
           cd dbt
           chmod +x ../.github/workflows/dbt-ci-setup.sh
           ../.github/workflows/dbt-ci-setup.sh
+          
+      - name: Install dbt dependencies
+        run: |
+          cd dbt
+          dbt deps --profiles-dir profiles --no-version-check
 
       - name: Check dbt project structure
         run: |
