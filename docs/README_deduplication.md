@@ -163,8 +163,10 @@ docker exec airflow-scheduler airflow dags list-runs deduplication_pipeline
 
 #### Проверка таблиц в ClickHouse
 ```bash
-docker exec clickhouse-01 clickhouse-client --user principalwater --password 'UnixSpace@11.' --port 9000 --query "SELECT name FROM system.tables WHERE database = 'dds' ORDER BY name"
+docker exec clickhouse-01 clickhouse-client --user <ваш_super_user_name> --password '<ваш_super_user_password>' --port 9000 --query "SELECT name FROM system.tables WHERE database = 'dds' ORDER BY name"
 ```
+
+> **Примечание**: Замените `<ваш_super_user_name>` и `<ваш_super_user_password>` на значения из `terraform.tfvars`
 
 ## Интеграция с другими системами
 

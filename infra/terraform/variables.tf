@@ -201,7 +201,7 @@ variable "postgres_version" {
 variable "metabase_version" {
   description = "Версия Docker-образа Metabase."
   type        = string
-  default     = "v0.49.8"
+  default     = "v0.55.12"
 }
 
 variable "superset_version" {
@@ -507,4 +507,19 @@ variable "dbt_base_path" {
   description = "Базовый путь для dbt проекта"
   type        = string
   default     = "../../dbt"
+}
+
+# --- Telegram Variables ---
+
+variable "telegram_bot_token" {
+  description = "Токен Telegram бота для отправки уведомлений"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "telegram_chat_id" {
+  description = "ID чата/канала Telegram для отправки уведомлений"
+  type        = string
+  default     = ""
 }

@@ -30,6 +30,12 @@
   - Макросы
   - Оптимизация производительности
 
+- **[BI_CLICKHOUSE_SETUP.md](BI_CLICKHOUSE_SETUP.md)** - Настройка BI-инструментов
+  - Подключение Metabase к ClickHouse
+  - Подключение Superset к ClickHouse  
+  - Диагностика и решение проблем
+  - Примеры создания дашбордов
+
 ### 🚀 Автоматизация и DevOps
 
 - **[CI_CD.md](CI_CD.md)** - CI/CD пайплайн и автоматизация
@@ -82,8 +88,9 @@
 ### 👶 Для новичков
 
 1. **Начните с [QUICK_START.md](../QUICK_START.md)** - разверните систему за 15 минут
-2. **Изучите [ARCHITECTURE.md](ARCHITECTURE.md)** - поймите общую структуру
-3. **Перейдите к [DBT_INTEGRATION.md](DBT_INTEGRATION.md)** - изучите работу с данными
+2. **Настройте BI [BI_CLICKHOUSE_SETUP.md](BI_CLICKHOUSE_SETUP.md)** - подключите Metabase и Superset
+3. **Изучите [ARCHITECTURE.md](ARCHITECTURE.md)** - поймите общую структуру
+4. **Перейдите к [DBT_INTEGRATION.md](DBT_INTEGRATION.md)** - изучите работу с данными
 
 ### 🔧 Для разработчиков
 
@@ -101,8 +108,9 @@
 
 ### По технологиям
 
-- **ClickHouse** → [ARCHITECTURE.md](ARCHITECTURE.md), [DBT_INTEGRATION.md](DBT_INTEGRATION.md), [KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)
+- **ClickHouse** → [ARCHITECTURE.md](ARCHITECTURE.md), [DBT_INTEGRATION.md](DBT_INTEGRATION.md), [BI_CLICKHOUSE_SETUP.md](BI_CLICKHOUSE_SETUP.md), [KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)
 - **dbt** → [DBT_INTEGRATION.md](DBT_INTEGRATION.md), [README_deduplication.md](README_deduplication.md)
+- **Metabase/Superset** → [BI_CLICKHOUSE_SETUP.md](BI_CLICKHOUSE_SETUP.md)
 - **Airflow** → [AIRFLOW_SETUP.md](AIRFLOW_SETUP.md), [README_deduplication.md](README_deduplication.md), [README_clickhouse_backup.md](README_clickhouse_backup.md), [KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)
 - **Terraform** → [CI_CD.md](CI_CD.md), [QUICK_START.md](../QUICK_START.md), [DEPLOYMENT.md](DEPLOYMENT.md)
 - **Kafka** → [KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)
@@ -110,6 +118,7 @@
 ### По задачам
 
 - **Развертывание** → [QUICK_START.md](../QUICK_START.md), [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Настройка BI** → [BI_CLICKHOUSE_SETUP.md](BI_CLICKHOUSE_SETUP.md)
 - **Разработка** → [DBT_INTEGRATION.md](DBT_INTEGRATION.md), [CI_CD.md](CI_CD.md), [AIRFLOW_SETUP.md](AIRFLOW_SETUP.md)
 - **Мониторинг** → [README_deduplication.md](README_deduplication.md), [README_clickhouse_backup.md](README_clickhouse_backup.md), [BACKUP_GUIDE.md](BACKUP_GUIDE.md)
 - **Резервное копирование** → [BACKUP_GUIDE.md](BACKUP_GUIDE.md), [README_clickhouse_backup.md](README_clickhouse_backup.md)
@@ -176,9 +185,9 @@ SELECT name FROM system.tables WHERE database = 'dds' ORDER BY name
 
 ## 📈 Статистика документации
 
-- **Общее количество документов:** 9 (в папке docs)
-- **Общий объем:** ~70,000 слов (в папке docs)
-- **Примеры кода:** 130+
+- **Общее количество документов:** 10 (в папке docs)
+- **Общий объем:** ~75,000 слов (в папке docs)
+- **Примеры кода:** 140+
 - **Диаграммы и схемы:** 22+
 - **Последнее обновление:** 2025-01-27
 

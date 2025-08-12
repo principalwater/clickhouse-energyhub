@@ -272,7 +272,8 @@ DDS → Aggregation → CDM Tables → BI Tools → Dashboards
 ### **Визуализация**
 - **Apache Superset** - аналитические дашборды
 - **Metabase** - самообслуживание аналитики
-- **Grafana** - мониторинг и алерты
+- **Apache Superset** - мониторинговые дашборды
+- **Airflow алертинг** - уведомления в Telegram
 
 ### **Инфраструктура**
 - **Docker** - контейнеризация

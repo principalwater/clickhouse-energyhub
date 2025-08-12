@@ -241,5 +241,5 @@ docker restart airflow-scheduler airflow-api-server
 ### Интеграция с внешними системами
 
 - **Уведомления:** Добавьте Slack/Email уведомления
-- **Мониторинг:** Интеграция с Prometheus/Grafana
+- **Мониторинг:** Интеграция с Airflow алертингом и Superset дашбордами
 - **Аудит:** Логирование всех операций

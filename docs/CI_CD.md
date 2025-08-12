@@ -12,7 +12,7 @@ ClickHouse EnergyHub использует современные практик�
 graph TB
     %% Разработчик
     subgraph "👨‍💻 Development"
-        principalwater[Vladislav Kuzmin<br/>Developer<br/>All Features & Infrastructure]
+        main_dev[Main Developer<br/>All Features & Infrastructure]
     end
     
     %% GitHub Repository
@@ -64,12 +64,12 @@ graph TB
     end
     
     %% Потоки разработки
-    principalwater --> BI_INFRA
-    principalwater --> KAFKA_INFRA
-    principalwater --> AIRFLOW_INFRA
-    principalwater --> DBT_INFRA
-    principalwater --> DATA_INFRA
-    principalwater --> ADDITIONAL_INFRA
+    main_dev --> BI_INFRA
+    main_dev --> KAFKA_INFRA
+    main_dev --> AIRFLOW_INFRA
+    main_dev --> DBT_INFRA
+    main_dev --> DATA_INFRA
+    main_dev --> ADDITIONAL_INFRA
     
     BI_INFRA --> MASTER
     KAFKA_INFRA --> MASTER
@@ -93,7 +93,7 @@ graph TB
     PYTHON_LINT --> DBT_CHECK
     
     %% Auto Approve
-    principalwater --> BOT_COMMENT
+    main_dev --> BOT_COMMENT
     BOT_COMMENT --> AUTO_APPROVE
     AUTO_APPROVE --> MASTER
     
@@ -114,7 +114,7 @@ graph TB
     classDef infra fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
     classDef bot fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     
-    class principalwater dev
+    class main_dev dev
     class MASTER,BI_INFRA,KAFKA_INFRA,AIRFLOW_INFRA,DBT_INFRA,DATA_INFRA,ADDITIONAL_INFRA github
     class CHECKOUT,TERRAFORM_SETUP,TERRAFORM_VALIDATE,TERRAFORM_PLAN,PYTHON_LINT,DBT_CHECK ci
     class BOT_COMMENT,AUTO_APPROVE bot
@@ -157,7 +157,7 @@ flowchart TD
     %% Auto Approve (approve.yml)
     subgraph "🤖 Auto Approval"
         BOT_TRIGGER[Elementary Flow Bot<br/>Comment: /approve]
-        BOT_CHECK[Check Conditions<br/>• PR exists<br/>• Comment = /approve<br/>• Author = principalwater]
+        BOT_CHECK[Check Conditions<br/>• PR exists<br/>• Comment = /approve<br/>• Author = repository owner]
         AUTO_APPROVE[Auto Approve PR<br/>Using ELEMENTARY_FLOW_BOT_PAT]
     end
     
@@ -219,13 +219,13 @@ flowchart TD
 Для автоматизации процесса одобрения Pull Request используется **Elementary Flow Bot** ([@elementary-flow-bot](https://github.com/elementary-flow-bot)), разработанный и подключенный к репозиторию. Бот автоматически одобряет PR при выполнении следующих условий:
 
 - Комментарий `/approve` оставлен в Pull Request
-- Автор комментария - `principalwater` (создатель репозитория)
+- Автор комментария - repository owner
 - PR существует и готов к слиянию
 
 **Процесс автоматического одобрения:**
 1. Создание Pull Request из feature branch в master
 2. Прохождение всех CI проверок (Terraform, Python, dbt)
-3. Комментарий `/approve` от principalwater
+3. Комментарий `/approve` от repository owner
 4. Автоматическое одобрение Elementary Flow Bot
 5. Слияние в master branch
 6. Автоматическое развертывание инфраструктуры

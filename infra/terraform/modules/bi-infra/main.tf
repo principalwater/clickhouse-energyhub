@@ -77,6 +77,7 @@ resource "docker_container" "metabase" {
     # PostgreSQL управляется внешним модулем postgres
     # Зависимость от модуля postgres обеспечивается на уровне корневого main.tf
   ]
+
   healthcheck {
     test     = ["CMD-SHELL", "curl --fail -I http://localhost:3000/api/health || exit 1"]
     interval = "15s"
@@ -247,6 +248,9 @@ EOT
   depends_on = [docker_container.metabase[0]]
 }
 
+# --- Примечание: ClickHouse подключение в Metabase настраивается вручную через UI ---
+# См. документацию: docs/BI_CLICKHOUSE_SETUP.md
+
 ######################################################################
 # --- Section: Superset - image, config, init_db, container, post_init, create_local_users ---
 ######################################################################
@@ -330,7 +334,7 @@ resource "null_resource" "superset_post_init" {
       # Upgrade pip and install ClickHouse drivers inside Superset container
       echo "Upgrading pip and installing ClickHouse drivers in Superset container"
       docker exec superset pip install --upgrade pip
-      docker exec superset pip install clickhouse-connect clickhouse-driver
+      docker exec superset pip install clickhouse-connect>=0.6.8 clickhouse-driver
 
       # Restart Superset container to load new libraries
       echo "Restarting Superset container to apply new libraries"
@@ -376,6 +380,9 @@ resource "null_resource" "superset_post_init" {
   }
   depends_on = [docker_container.superset[0]]
 }
+
+# --- Примечание: ClickHouse подключение в Superset настраивается вручную через UI ---
+# См. документацию: docs/BI_CLICKHOUSE_SETUP.md
 
 ######################################################################
 # --- Section: Superset user automation ---

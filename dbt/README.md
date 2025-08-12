@@ -37,7 +37,9 @@ clickhouse_energyhub/
 - **Хост**: clickhouse-01
 - **Порт**: 9000
 - **База данных**: default
-- **Пользователь**: principalwater (principalwater для полных прав)
+- **Пользователь**: `<ваш_super_user_name>` (super user для полных прав)
+
+> **Примечание**: Значение `super_user_name` указано в `terraform.tfvars`
 
 ## Data Quality проверки
 

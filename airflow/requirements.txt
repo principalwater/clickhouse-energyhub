@@ -1,0 +1,17 @@
+# Core Airflow dependencies
+apache-airflow>=2.8.0,<3.0.0
+
+# Optional: Telegram notifications using official provider
+# Uncomment the line below to enable Telegram alerts
+apache-airflow-providers-telegram==4.8.2
+
+# Additional useful packages
+python-dotenv>=1.0.0
+requests>=2.28.0
+
+# System monitoring dependencies
+psutil>=5.9.0
+docker>=6.0.0
+
+# ClickHouse integration
+clickhouse-connect>=0.7.0

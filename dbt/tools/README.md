@@ -86,8 +86,8 @@ source ./activate.sh
 - Переменные окружения системы
 
 **Обязательные переменные:**
-- `CLICKHOUSE_USER` - пользователь ClickHouse (по умолчанию: principalwater для полных прав)
-- `CLICKHOUSE_PASSWORD` - пароль пользователя
+- `CLICKHOUSE_USER` - пользователь ClickHouse (значение `super_user_name` из `terraform.tfvars`)
+- `CLICKHOUSE_PASSWORD` - пароль пользователя (значение `super_user_password` из `terraform.tfvars`)
 - `CLICKHOUSE_HOST` - хост ClickHouse
 - `CLICKHOUSE_PORT` - порт ClickHouse
 - `CLICKHOUSE_DATABASE` - база данных

@@ -112,10 +112,11 @@ def update_dbt_sources():
         
         class DbtSourcesUpdater:
             def __init__(self):
+                import os
                 self.clickhouse_host = "clickhouse-01"
                 self.clickhouse_port = 9000
-                self.clickhouse_user = "principalwater"
-                self.clickhouse_password = "UnixSpace@11."
+                self.clickhouse_user = os.getenv("CH_USER", "su")
+                self.clickhouse_password = os.getenv("CH_PASSWORD", "")
                 self.dbt_project_path = "/opt/airflow/dbt"
                 self.sources_file = os.path.join(self.dbt_project_path, "models", "sources.yml")
                 
