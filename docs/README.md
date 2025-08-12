@@ -6,7 +6,7 @@
 
 ### 🚀 Быстрый старт
 
-- **[QUICK_START.md](QUICK_START.md)** - Полный туториал по развертыванию за 15 минут
+- **[QUICK_START.md](../QUICK_START.md)** - Полный туториал по развертыванию за 15 минут
   - Пошаговые инструкции
   - Проверка предварительных требований
   - Устранение неполадок
@@ -39,6 +39,18 @@
   - Стратегии развертывания
   - Мониторинг и алерты
 
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Руководство по развертыванию системы
+  - Подробные инструкции по развертыванию
+  - Конфигурация компонентов
+  - Проверка работоспособности
+  - Устранение неполадок
+
+- **[AIRFLOW_SETUP.md](AIRFLOW_SETUP.md)** - Настройка Apache Airflow
+  - Конфигурация Airflow
+  - Настройка подключений
+  - Создание DAG'ов
+  - Мониторинг и логирование
+
 ### 🔄 Специализированные DAG'и
 
 - **[README_deduplication.md](README_deduplication.md)** - DAG для автоматической дедупликации
@@ -53,11 +65,23 @@
   - Очистка старых бэкапов
   - Мониторинг здоровья системы
 
+- **[BACKUP_GUIDE.md](BACKUP_GUIDE.md)** - Руководство по резервному копированию
+  - Система бэкапов и восстановления
+  - Стратегии резервного копирования
+  - Автоматизация процессов
+  - Мониторинг и алерты
+
+- **[KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)** - Создание таблиц из Kafka
+  - DAG для динамического создания таблиц
+  - Автоматическая обработка схем
+  - Интеграция с ClickHouse
+  - Мониторинг и логирование
+
 ## 🎯 Как использовать документацию
 
 ### 👶 Для новичков
 
-1. **Начните с [QUICK_START.md](QUICK_START.md)** - разверните систему за 15 минут
+1. **Начните с [QUICK_START.md](../QUICK_START.md)** - разверните систему за 15 минут
 2. **Изучите [ARCHITECTURE.md](ARCHITECTURE.md)** - поймите общую структуру
 3. **Перейдите к [DBT_INTEGRATION.md](DBT_INTEGRATION.md)** - изучите работу с данными
 
@@ -77,16 +101,19 @@
 
 ### По технологиям
 
-- **ClickHouse** → [ARCHITECTURE.md](ARCHITECTURE.md), [DBT_INTEGRATION.md](DBT_INTEGRATION.md)
+- **ClickHouse** → [ARCHITECTURE.md](ARCHITECTURE.md), [DBT_INTEGRATION.md](DBT_INTEGRATION.md), [KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)
 - **dbt** → [DBT_INTEGRATION.md](DBT_INTEGRATION.md), [README_deduplication.md](README_deduplication.md)
-- **Airflow** → [README_deduplication.md](README_deduplication.md), [README_clickhouse_backup.md](README_clickhouse_backup.md)
-- **Terraform** → [CI_CD.md](CI_CD.md), [QUICK_START.md](QUICK_START.md)
+- **Airflow** → [AIRFLOW_SETUP.md](AIRFLOW_SETUP.md), [README_deduplication.md](README_deduplication.md), [README_clickhouse_backup.md](README_clickhouse_backup.md), [KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)
+- **Terraform** → [CI_CD.md](CI_CD.md), [QUICK_START.md](../QUICK_START.md), [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Kafka** → [KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)
 
 ### По задачам
 
-- **Развертывание** → [QUICK_START.md](QUICK_START.md)
-- **Разработка** → [DBT_INTEGRATION.md](DBT_INTEGRATION.md), [CI_CD.md](CI_CD.md)
-- **Мониторинг** → [README_deduplication.md](README_deduplication.md), [README_clickhouse_backup.md](README_clickhouse_backup.md)
+- **Развертывание** → [QUICK_START.md](../QUICK_START.md), [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Разработка** → [DBT_INTEGRATION.md](DBT_INTEGRATION.md), [CI_CD.md](CI_CD.md), [AIRFLOW_SETUP.md](AIRFLOW_SETUP.md)
+- **Мониторинг** → [README_deduplication.md](README_deduplication.md), [README_clickhouse_backup.md](README_clickhouse_backup.md), [BACKUP_GUIDE.md](BACKUP_GUIDE.md)
+- **Резервное копирование** → [BACKUP_GUIDE.md](BACKUP_GUIDE.md), [README_clickhouse_backup.md](README_clickhouse_backup.md)
+- **Интеграция данных** → [KAFKA_TO_CH_TABLE_CREATE_README.md](KAFKA_TO_CH_TABLE_CREATE_README.md)
 - **Устранение неполадок** → Все документы содержат разделы troubleshooting
 
 ## 📖 Примеры использования
@@ -95,7 +122,7 @@
 
 ```bash
 # Клонирование и развертывание
-git clone https://github.com/your-username/clickhouse-energyhub.git
+git clone https://github.com/principalwater/clickhouse-energyhub.git
 cd clickhouse-energyhub
 ./deploy.sh
 ```
@@ -137,9 +164,9 @@ SELECT name FROM system.tables WHERE database = 'dds' ORDER BY name
 
 ### 📚 Дополнительные ресурсы
 
-- **GitHub Wiki** - [Wiki проекта](https://github.com/your-username/clickhouse-energyhub/wiki)
-- **GitHub Issues** - [Вопросы и проблемы](https://github.com/your-username/clickhouse-energyhub/issues)
-- **GitHub Discussions** - [Обсуждения и идеи](https://github.com/your-username/clickhouse-energyhub/discussions)
+- **GitHub Wiki** - [Wiki проекта](https://github.com/principalwater/clickhouse-energyhub/wiki)
+- **GitHub Issues** - [Вопросы и проблемы](https://github.com/principalwater/clickhouse-energyhub/issues)
+- **GitHub Discussions** - [Обсуждения и идеи](https://github.com/principalwater/clickhouse-energyhub/discussions)
 
 ### 📧 Контакты
 
@@ -149,11 +176,11 @@ SELECT name FROM system.tables WHERE database = 'dds' ORDER BY name
 
 ## 📈 Статистика документации
 
-- **Общее количество документов:** 6
-- **Общий объем:** ~50,000 слов
-- **Примеры кода:** 100+
-- **Диаграммы и схемы:** 20+
-- **Последнее обновление:** 2025-08-12
+- **Общее количество документов:** 9 (в папке docs)
+- **Общий объем:** ~70,000 слов (в папке docs)
+- **Примеры кода:** 130+
+- **Диаграммы и схемы:** 22+
+- **Последнее обновление:** 2025-01-27
 
 ---
 

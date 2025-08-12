@@ -22,11 +22,11 @@
 
 ## Входные переменные (Input Variables)
 
-| Имя | Описание | Тип | Обязательная |
-| --- | --- | --- | --- |
-| `portainer_version` | Версия Portainer CE (например, `latest` или `2.19.4`) | string | Да |
-| `portainer_https_port` | Порт для доступа к веб-интерфейсу Portainer по HTTPS | number | Да |
-| `portainer_agent_port` | Порт для HTTP-доступа и подключения Docker agent | number | Да |
+| Имя                    | Описание                                                                        | Тип     | Обязательная |
+|------------------------|---------------------------------------------------------------------------------|----------|--------------|
+| `portainer_version`    | Версия Portainer CE (например, `latest` или `2.19.4`)                          | string   | Да           |
+| `portainer_https_port` | Порт для доступа к веб-интерфейсу Portainer по HTTPS                           | number   | Да           |
+| `portainer_agent_port` | Порт для HTTP-доступа и подключения Docker agent                               | number   | Да           |
 
 ---
 

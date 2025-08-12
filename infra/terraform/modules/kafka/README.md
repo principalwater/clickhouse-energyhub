@@ -31,17 +31,17 @@
 
 ## Входные переменные (Input Variables)
 
-| Имя | Описание | Тип | Обязательная |
-| --- | --- | --- | --- |
-| `kafka_version` | Версия для Docker-образов Confluent Platform | string | Да |
-| `docker_network_name` | Имя Docker-сети для подключения контейнеров | string | Да |
-| `topic_1min` | Название топика для 1-минутных данных | string | Да |
-| `topic_5min` | Название топика для 5-минутных данных | string | Да |
-| `kafka_admin_user` | Имя пользователя-администратора для Kafka | string | Да |
-| `kafka_admin_password` | Пароль для пользователя-администратора Kafka | string (sensitive) | Да |
-| `kafka_ssl_keystore_password` | Пароль для Keystore и Truststore Kafka | string (sensitive) | Да |
-| `secrets_path` | Абсолютный путь к директории с секретами для Kafka | string | Да |
-| `enable_kafka_acl` | Включить ACL авторизацию в Kafka | bool | Нет (default: false) |
+| Имя                        | Описание                                    | Тип                | Обязательная        |
+|----------------------------|---------------------------------------------|--------------------|---------------------|
+| `kafka_version`            | Версия для Docker-образов Confluent Platform| string             | Да                  |
+| `docker_network_name`      | Имя Docker-сети для подключения контейнеров | string             | Да                  |
+| `topic_1min`               | Название топика для 1-минутных данных      | string             | Да                  |
+| `topic_5min`               | Название топика для 5-минутных данных      | string             | Да                  |
+| `kafka_admin_user`         | Имя пользователя-администратора для Kafka  | string             | Да                  |
+| `kafka_admin_password`     | Пароль для пользователя-администратора Kafka| string (sensitive) | Да                  |
+| `kafka_ssl_keystore_password`| Пароль для Keystore и Truststore Kafka    | string (sensitive) | Да                  |
+| `secrets_path`             | Абсолютный путь к директории с секретами для Kafka| string        | Да                  |
+| `enable_kafka_acl`         | Включить ACL авторизацию в Kafka           | bool               | Нет (default: false)|
 
 ---
 

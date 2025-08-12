@@ -33,7 +33,7 @@ git --version
 
 ```bash
 # Клонируем репозиторий
-git clone https://github.com/your-username/clickhouse-energyhub.git
+git clone https://github.com/principalwater/clickhouse-energyhub.git
 
 # Переходим в директорию проекта
 cd clickhouse-energyhub
@@ -173,13 +173,13 @@ ORDER BY database, name;
 
 После успешного развертывания вам будут доступны:
 
-| Сервис | URL | Логин/Пароль |
-|--------|-----|---------------|
-| **Airflow** | http://localhost:8080 | `airflow` / `airflow` |
-| **ClickHouse** | localhost:9000 | `admin` / `your_password` |
-| **Superset** | http://localhost:8088 | `admin` / `admin` |
-| **Metabase** | http://localhost:3000 | `admin@example.com` / `admin` |
-| **Portainer** | http://localhost:9443 | Создается при первом входе |
+| Сервис        | URL                    | Логин/Пароль                    |
+|---------------|------------------------|--------------------------------|
+| **Airflow**   | http://localhost:8080  | `airflow` / `airflow`          |
+| **ClickHouse**| localhost:9000         | `admin` / `your_password`      |
+| **Superset**  | http://localhost:8088  | `admin` / `admin`              |
+| **Metabase**  | http://localhost:3000  | `admin@example.com` / `admin`  |
+| **Portainer** | http://localhost:9443  | Создается при первом входе      |
 
 ## 🚨 Устранение неполадок
 
@@ -232,8 +232,8 @@ terraform init
 ## 🆘 Получение помощи
 
 - **Документация:** [docs/](docs/)
-- **Issues:** [GitHub Issues](https://github.com/your-username/clickhouse-energyhub/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/your-username/clickhouse-energyhub/discussions)
+- **Issues:** [GitHub Issues](https://github.com/principalwater/clickhouse-energyhub/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/principalwater/clickhouse-energyhub/discussions)
 
 ## 🎯 Что вы получили
 

@@ -31,15 +31,15 @@ start → update_dbt_sources → check_duplicates_before → run_dbt_deduplicati
 
 ### Детальное описание задач
 
-| Задача | Описание | Оператор | Время выполнения |
-|--------|----------|----------|------------------|
-| `update_dbt_sources` | Автоматическое обновление sources.yml | PythonOperator | ~5-10 сек |
-| `check_duplicates_before` | Проверка количества дублей до очистки | PythonOperator | ~2-3 сек |
-| `run_dbt_deduplication` | Запуск dbt моделей очистки | BashOperator | ~10-30 сек |
-| `run_dbt_views` | Создание view над очищенными данными | BashOperator | ~5-10 сек |
-| `run_dbt_tests_dedup` | Запуск тестов на отсутствие дублей | BashOperator | ~5-15 сек |
-| `check_duplicates_after` | Проверка количества дублей после очистки | PythonOperator | ~2-3 сек |
-| `generate_dedup_report` | Генерация отчета по результатам | PythonOperator | ~2-3 сек |
+| Задача                    | Описание                                    | Оператор      | Время выполнения |
+|---------------------------|---------------------------------------------|---------------|------------------|
+| `update_dbt_sources`      | Автоматическое обновление sources.yml      | PythonOperator| ~5-10 сек        |
+| `check_duplicates_before` | Проверка количества дублей до очистки      | PythonOperator| ~2-3 сек         |
+| `run_dbt_deduplication`  | Запуск dbt моделей очистки                 | BashOperator  | ~10-30 сек       |
+| `run_dbt_views`          | Создание view над очищенными данными       | BashOperator  | ~5-10 сек        |
+| `run_dbt_tests_dedup`    | Запуск тестов на отсутствие дублей         | BashOperator  | ~5-15 сек        |
+| `check_duplicates_after` | Проверка количества дублей после очистки   | PythonOperator| ~2-3 сек         |
+| `generate_dedup_report`  | Генерация отчета по результатам            | PythonOperator| ~2-3 сек         |
 
 ## Расписание
 

@@ -6,97 +6,227 @@ ClickHouse EnergyHub представляет собой современную 
 
 ## 🏛️ Архитектурные слои
 
-### 1. **Raw Layer** (Сырые данные)
-**Назначение:** Хранение исходных данных без изменений
+### Общая архитектура Data Warehouse
 
-**Характеристики:**
-- ✅ **Иммутабельность** - данные никогда не изменяются
-- ✅ **Полнота** - сохраняются все входящие данные
-- ✅ **Аудит** - полная история изменений
-- ✅ **Производительность** - быстрая запись
-
-**Структура:**
+```mermaid
+graph TB
+    %% Источники данных
+    subgraph "📊 Источники данных"
+        KAFKA[Kafka Topics<br/>energy_data_1min<br/>energy_data_5min]
+        API[External APIs<br/>Energy Market Data<br/>River Flow Sensors]
+        FILES[File Sources<br/>CSV, JSON, XML]
+    end
+    
+    %% ClickHouse кластер
+    subgraph "🗄️ ClickHouse Cluster dwh_prod"
+        subgraph "Shard 1"
+            CH1[clickhouse-01<br/>Replica 1]
+            CH3[clickhouse-03<br/>Replica 2]
+        end
+        subgraph "Shard 2"
+            CH2[clickhouse-02<br/>Replica 1]
+            CH4[clickhouse-04<br/>Replica 2]
+        end
+        subgraph "Coordination"
+            CHK1[Keeper 1]
+            CHK2[Keeper 2]
+            CHK3[Keeper 3]
+        end
+    end
+    
+    %% Слои данных
+    subgraph "📥 Raw Layer (Иммутабельные данные)"
+        RAW_RF[raw.river_flow<br/>Речной сток]
+        RAW_EC[raw.energy_consumption<br/>Потребление энергии]
+        RAW_MD[raw.market_data<br/>Рыночные данные]
+        RAW_DEV[raw.devices<br/>Устройства]
+        RAW_LOC[raw.locations<br/>Локации]
+    end
+    
+    subgraph "🔧 ODS Layer (Очистка и стандартизация)"
+        ODS_EC[ods.energy_consumption<br/>Очищенные данные потребления]
+        ODS_DEV[ods.devices<br/>Очищенные данные устройств]
+        ODS_LOC[ods.locations<br/>Очищенные локации]
+    end
+    
+    subgraph "🧹 DDS Layer (Бизнес-логика и дедупликация)"
+        DDS_RF_CLEAN[dds.river_flow_clean<br/>Очищенные данные без дублей]
+        DDS_MD_CLEAN[dds.market_data_clean<br/>Очищенные рыночные данные]
+        DDS_EC[dds.energy_consumption<br/>Обработанные данные потребления]
+        DDS_RF_VIEW[dds.river_flow_view<br/>View для доступа]
+        DDS_MD_VIEW[dds.market_data_view<br/>View для доступа]
+    end
+    
+    subgraph "📊 CDM Layer (Аналитические кубы)"
+        CDM_EC_DAILY[cdm.energy_consumption_daily<br/>Ежедневная сводка]
+        CDM_DEV_PERF[cdm.device_performance<br/>Производительность устройств]
+    end
+    
+    %% Поток данных
+    KAFKA --> RAW_RF
+    KAFKA --> RAW_MD
+    API --> RAW_EC
+    API --> RAW_DEV
+    FILES --> RAW_LOC
+    
+    %% Трансформации
+    RAW_EC --> ODS_EC
+    RAW_DEV --> ODS_DEV
+    RAW_LOC --> ODS_LOC
+    
+    RAW_RF --> DDS_RF_CLEAN
+    RAW_MD --> DDS_MD_CLEAN
+    ODS_EC --> DDS_EC
+    
+    DDS_RF_CLEAN --> DDS_RF_VIEW
+    DDS_MD_CLEAN --> DDS_MD_VIEW
+    
+    DDS_EC --> CDM_EC_DAILY
+    DDS_DEV --> CDM_DEV_PERF
+    
+    %% ClickHouse кластер
+    RAW_RF -.-> CH1
+    RAW_RF -.-> CH3
+    RAW_MD -.-> CH2
+    RAW_MD -.-> CH4
+    
+    %% Стили
+    classDef rawLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef odsLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef ddsLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef cdmLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef cluster fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    
+    class RAW_RF,RAW_EC,RAW_DEV,RAW_LOC rawLayer
+    class ODS_EC,ODS_DEV,ODS_LOC odsLayer
+    class DDS_RF_CLEAN,DDS_EC,DDS_RF_VIEW ddsLayer
+    class CDM_EC_DAILY,CDM_DEV_PERF cdmLayer
+    class CH1,CH2,CH3,CH4,CHK1,CHK2,CHK3 cluster
 ```
-raw/
-├── river_flow/           # Данные о речном стоке
-├── energy_consumption/   # Потребление энергии
-├── market_data/          # Рыночные данные
-├── devices/              # Информация об устройствах
-└── locations/            # Географические данные
+
+### Детальная схема потоков данных
+
+```mermaid
+flowchart TD
+    %% Источники
+    subgraph "🌊 Источники данных"
+        KAFKA_1MIN[Kafka: energy_data_1min<br/>Речной сток каждую минуту]
+        KAFKA_5MIN[Kafka: energy_data_5min<br/>Рыночные данные каждые 5 мин]
+        SENSORS[IoT Sensors<br/>Речные датчики<br/>Энергетические счетчики]
+        MARKET_API[Energy Market API<br/>Цены, объемы, зоны]
+    end
+    
+    %% Airflow DAG'и
+    subgraph "🔄 Airflow Orchestration"
+        DAG_DEDUP[deduplication_pipeline<br/>Каждые 5 минут]
+        DAG_BACKUP[clickhouse_backup_pipeline<br/>Ежедневно]
+        DAG_DBT[dbt_pipeline<br/>По расписанию]
+        DAG_DATA[data_processing_pipeline<br/>Непрерывно]
+    end
+    
+    %% ClickHouse таблицы
+    subgraph "🗄️ ClickHouse Tables"
+        subgraph "Raw Layer"
+            RAW_RF[raw.river_flow<br/>timestamp, river_name, ges_name<br/>water_level_m, flow_rate_m3_s, power_output_mw]
+            RAW_EC[raw.energy_consumption<br/>device_id, location_id, timestamp<br/>energy_kwh, voltage, current_amp, power_factor]
+            RAW_DEV[raw.devices<br/>device_id, device_name, device_type<br/>manufacturer, model, specifications]
+            RAW_LOC[raw.locations<br/>location_id, location_name, region<br/>city, country, coordinates]
+        end
+        
+        subgraph "ODS Layer"
+            ODS_EC[ods.energy_consumption<br/>Очищенные данные потребления<br/>Бизнес-правила и валидация]
+            ODS_DEV[ods.devices<br/>Очищенные данные устройств<br/>Стандартизация и обогащение]
+            ODS_LOC[ods.locations<br/>Очищенные локации<br/>Геокодирование и нормализация]
+        end
+        
+        subgraph "DDS Layer"
+            DDS_RF_CLEAN[dds.river_flow_clean<br/>Дедуплицированные данные<br/>ROW_NUMBER() OVER (PARTITION BY ges_name, timestamp, river_name)]
+            DDS_MD_CLEAN[dds.market_data_clean<br/>Дедуплицированные данные<br/>Ключи: timestamp, trading_zone]
+            DDS_EC[dds.energy_consumption<br/>Обработанные данные потребления<br/>Аномалии, категоризация, агрегация]
+            DDS_RF_VIEW[dds.river_flow_view<br/>View для доступа к очищенным данным]
+            DDS_MD_VIEW[dds.market_data_view<br/>View для доступа к очищенным данным]
+        end
+        
+        subgraph "CDM Layer"
+            CDM_EC_DAILY[cdm.energy_consumption_daily<br/>Ежедневная агрегация<br/>total_energy_kwh, avg_energy_kwh, anomaly_percentages]
+            CDM_DEV_PERF[cdm.device_performance<br/>KPI устройств<br/>efficiency, uptime, maintenance_needed]
+        end
+    end
+    
+    %% dbt модели
+    subgraph "🧹 dbt Models"
+        DBT_RAW[raw_* models<br/>Загрузка из Kafka]
+        DBT_ODS[ods_* models<br/>Очистка и стандартизация]
+        DBT_DDS[dds_* models<br/>Бизнес-логика и дедупликация]
+        DBT_CDM[cdm_* models<br/>Агрегация и аналитика]
+    end
+    
+    %% Потоки
+    KAFKA_1MIN --> DAG_DATA
+    KAFKA_5MIN --> DAG_DATA
+    SENSORS --> DAG_DATA
+    MARKET_API --> DAG_DATA
+    
+    DAG_DATA --> RAW_RF
+    DAG_DATA --> RAW_EC
+    DAG_DATA --> RAW_DEV
+    DAG_DATA --> RAW_LOC
+    
+    %% Трансформации через dbt
+    RAW_EC --> DBT_ODS
+    RAW_DEV --> DBT_ODS
+    RAW_LOC --> DBT_ODS
+    
+    DBT_ODS --> ODS_EC
+    DBT_ODS --> ODS_DEV
+    DBT_ODS --> ODS_LOC
+    
+    RAW_RF --> DAG_DEDUP
+    RAW_EC --> DAG_DEDUP
+    
+    DAG_DEDUP --> DBT_DDS
+    DBT_DDS --> DDS_RF_CLEAN
+    DBT_DDS --> DDS_EC
+    
+    DDS_RF_CLEAN --> DDS_RF_VIEW
+    DDS_EC --> DBT_CDM
+    DBT_CDM --> CDM_EC_DAILY
+    DBT_CDM --> CDM_DEV_PERF
+    
+    %% Автоматизация
+    DAG_DEDUP --> DBT_RAW
+    DAG_DEDUP --> DBT_ODS
+    
+    %% Стили
+    classDef source fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef airflow fill:#ffebee,stroke:#c62828,stroke-width:2px
+    classDef clickhouse fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef dbt fill:#fff8e1,stroke:#f57f17,stroke-width:2px
+    
+    class KAFKA_1MIN,KAFKA_5MIN,SENSORS,MARKET_API source
+    class DAG_DEDUP,DAG_BACKUP,DAG_DBT,DAG_DATA airflow
+    class RAW_RF,RAW_MD,DDS_RF_CLEAN,DDS_MD_CLEAN,CDM_EC_DAILY,CDM_DEV_PERF clickhouse
+    class DBT_RAW,DBT_ODS,DBT_DDS,DBT_CDM dbt
 ```
 
-**Нейминг конвенции:**
+### Нейминг конвенции
+
+**Raw Layer:**
 - Таблицы: `raw_[entity_name]`
 - Колонки: `[original_name]` (без префиксов)
 - Индексы: `idx_[table]_[columns]`
 
-### 2. **ODS Layer** (Operational Data Store)
-**Назначение:** Операционные данные с базовой очисткой
-
-**Характеристики:**
-- 🔧 **Базовая очистка** - удаление очевидных ошибок
-- 📊 **Стандартизация** - приведение к единому формату
-- 🔄 **Инкрементальная загрузка** - обновление измененных данных
-- 📈 **Бизнес-логика** - применение простых правил
-
-**Структура:**
-```
-ods/
-├── ods_river_flow/       # Очищенные данные речного стока
-├── ods_energy_consumption/ # Очищенные данные потребления
-├── ods_market_data/      # Очищенные рыночные данные
-├── ods_devices/          # Очищенные данные устройств
-└── ods_locations/        # Очищенные географические данные
-```
-
-**Нейминг конвенции:**
+**ODS Layer:**
 - Таблицы: `ods_[entity_name]`
 - Колонки: `[standardized_name]`
 - Индексы: `idx_ods_[table]_[columns]`
 
-### 3. **DDS Layer** (Detailed Data Store)
-**Назначение:** Детализированные данные с бизнес-логикой
-
-**Характеристики:**
-- 🧹 **Дедупликация** - удаление дублирующихся записей
-- 🔗 **Интеграция** - объединение данных из разных источников
-- 📊 **Агрегация** - предрасчет метрик
-- 🎯 **Бизнес-правила** - применение сложной логики
-
-**Структура:**
-```
-dds/
-├── dds_river_flow_clean/     # Очищенные данные без дублей
-├── dds_market_data_clean/    # Очищенные рыночные данные
-├── dds_energy_consumption/   # Обработанные данные потребления
-├── dds_river_flow_view/      # View для доступа к данным
-└── dds_market_data_view/     # View для доступа к данным
-```
-
-**Нейминг конвенции:**
+**DDS Layer:**
 - Таблицы: `dds_[entity_name]_[suffix]`
 - Колонки: `[business_name]`
 - Индексы: `idx_dds_[table]_[columns]`
 
-### 4. **CDM Layer** (Conformed Data Mart)
-**Назначение:** Готовые для анализа данные
-
-**Характеристики:**
-- 📊 **Денормализация** - оптимизация для запросов
-- 🎯 **Бизнес-метрики** - готовые KPI
-- 📈 **Временные ряды** - агрегация по времени
-- 🔍 **Аналитические кубы** - многомерный анализ
-
-**Структура:**
-```
-cdm/
-├── cdm_daily_energy_summary/     # Ежедневная сводка по энергии
-├── cdm_monthly_river_flow/       # Месячная сводка по речному стоку
-├── cdm_market_analytics/         # Аналитика рынка
-└── cdm_device_performance/       # Производительность устройств
-```
-
-**Нейминг конвенции:**
+**CDM Layer:**
 - Таблицы: `cdm_[granularity]_[entity]_[type]`
 - Колонки: `[metric_name]` или `[dimension_name]`
 - Индексы: `idx_cdm_[table]_[columns]`
@@ -316,7 +446,7 @@ SET max_memory_usage = 8589934592; -- 8GB
 
 ## 📚 Дополнительные ресурсы
 
-- [Quick Start Guide](QUICK_START.md) - Быстрый старт
+- [Quick Start Guide](../QUICK_START.md) - Быстрый старт
 - [DBT Integration](DBT_INTEGRATION.md) - Интеграция с dbt
 - [Monitoring Guide](MONITORING.md) - Мониторинг системы
 - [CI/CD Pipeline](CI_CD.md) - Автоматизация развертывания
