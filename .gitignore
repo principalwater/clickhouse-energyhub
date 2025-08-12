@@ -17,6 +17,10 @@ volumes/
 # Secrets and environment variables
 env/
 secrets/
+*.env
+*.env.local
+*.env.production
+*.env.staging
 
 # Python
 __pycache__/
@@ -34,6 +38,16 @@ build/
 dbt_packages/
 logs/
 target/
+dbt/profiles/profiles.yml
+dbt/profiles/*.yml
+
+# Terraform generated dbt files
+dbt/dq_macros.sql
+dbt/dq_test.sql
+dbt/profiles.yml
+dbt/dbt_project.yml
+dbt/package-lock.yml
+dbt/dbt_env/
 
 # IDE
 .idea/
@@ -41,3 +55,14 @@ target/
 
 # OS
 .DS_Store
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+
+# Backup files
+*.bak
+*.backup
+*.old

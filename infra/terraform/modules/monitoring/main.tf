@@ -23,6 +23,9 @@ resource "docker_container" "portainer" {
   hostname = "portainer"
   restart  = "unless-stopped"
 
+  # Правильная команда запуска для Portainer CE
+  command = ["--no-analytics"]
+
   ports {
     internal = 9000
     external = var.portainer_agent_port

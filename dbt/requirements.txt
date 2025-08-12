@@ -1,0 +1,26 @@
+# dbt requirements for ClickHouse EnergyHub
+# Based on official dbt-clickhouse documentation
+
+# Core dbt
+dbt-core==1.10.7
+
+# ClickHouse adapter
+dbt-clickhouse==1.9.2
+
+# ClickHouse Python driver
+clickhouse-connect>=0.7.0
+
+# Additional utilities
+clickhouse-driver>=0.2.0
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Development tools
+pytest>=7.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0
+
+# Documentation
+mkdocs>=1.4.0
+mkdocs-material>=8.0.0

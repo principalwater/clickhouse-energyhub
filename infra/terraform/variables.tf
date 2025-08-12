@@ -155,7 +155,7 @@ variable "remote_minio_path" {
 variable "local_backup_minio_path" {
   description = "Путь к данным для локального MinIO (backup)"
   type        = string
-  default     = "../minio_backup/data"
+  default     = "../../volumes/minio/backup"
 }
 
 variable "remote_host_name" {
@@ -469,4 +469,36 @@ variable "airflow_config_path" {
   description = "Путь к директории с конфигурацией Airflow."
   type        = string
   default     = "../../volumes/airflow/config"
+}
+
+# --- DBT Variables ---
+
+variable "deploy_dbt" {
+  description = "Включить развертывание dbt модуля"
+  type        = bool
+  default     = true
+}
+
+variable "dbt_version" {
+  description = "Версия dbt для ClickHouse"
+  type        = string
+  default     = "1.9.2"
+}
+
+variable "dbt_core_version" {
+  description = "Версия dbt-core"
+  type        = string
+  default     = "1.10.7"
+}
+
+variable "dbt_port" {
+  description = "Порт для dbt сервиса"
+  type        = number
+  default     = 8080
+}
+
+variable "dbt_base_path" {
+  description = "Базовый путь для dbt проекта"
+  type        = string
+  default     = "../../dbt"
 }

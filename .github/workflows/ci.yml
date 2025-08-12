@@ -151,3 +151,139 @@ jobs:
             echo "Checking syntax: $file"
             bash -n "$file"
           done
+
+  dbt-check:
+    runs-on: ubuntu-latest
+    needs: terraform
+    env:
+      DBT_PROFILES_DIR: ./dbt/profiles
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dbt-clickhouse
+        run: |
+          pip install 'dbt-core>=1.10.0'
+          pip install 'dbt-clickhouse>=1.9.0'
+          
+      - name: Check dbt version
+        run: |
+          cd dbt
+          dbt --version
+          
+      - name: Create dbt project structure
+        run: |
+          cd dbt
+          chmod +x ../.github/workflows/dbt-ci-setup.sh
+          ../.github/workflows/dbt-ci-setup.sh
+          
+      - name: Install dbt dependencies
+        run: |
+          cd dbt
+          dbt deps --profiles-dir profiles --no-version-check
+
+      - name: Check dbt project structure
+        run: |
+          cd dbt
+          echo "Checking dbt project structure..."
+          if [ -f "dbt_project.yml" ]; then
+            echo "✓ dbt_project.yml found"
+          else
+            echo "✗ dbt_project.yml not found"
+            exit 1
+          fi
+          
+          if [ -d "models" ]; then
+            echo "✓ models directory found"
+            echo "Checking model layers..."
+            if [ -d "models/raw" ]; then
+              echo "✓ RAW layer found"
+            else
+              echo "✗ RAW layer not found"
+              exit 1
+            fi
+            if [ -d "models/ods" ]; then
+              echo "✓ ODS layer found"
+            else
+              echo "✗ ODS layer not found"
+              exit 1
+            fi
+            if [ -d "models/dds" ]; then
+              echo "✓ DDS layer found"
+            else
+              echo "✗ DDS layer not found"
+              exit 1
+            fi
+            if [ -d "models/cdm" ]; then
+              echo "✓ CDM layer found"
+            else
+              echo "✗ CDM layer not found"
+              exit 1
+            fi
+          else
+            echo "✗ models directory not found"
+            exit 1
+          fi
+          
+          if [ -d "macros" ]; then
+            echo "✓ macros directory found"
+          else
+            echo "✗ macros directory not found"
+            exit 1
+          fi
+          
+          if [ -d "tests" ]; then
+            echo "✓ tests directory found"
+          else
+            echo "✗ tests directory not found"
+            exit 1
+          fi
+
+      - name: Note about offline dbt checks
+        run: |
+          echo "Running dbt checks in offline mode (no database connection)"
+          echo "This will validate syntax, structure, and compile models without running them"
+          
+      - name: Validate dbt project
+        run: |
+          cd dbt
+          echo "Validating dbt project structure..."
+          dbt parse --profiles-dir profiles --no-version-check
+
+      - name: Check dbt models syntax
+        run: |
+          cd dbt
+          echo "Checking dbt models syntax..."
+          dbt parse --profiles-dir profiles --no-version-check
+          
+      - name: Validate dbt model layers
+        run: |
+          cd dbt
+          echo "Validating dbt model layers..."
+          
+          # Проверка RAW слоя
+          echo "Validating RAW layer..."
+          dbt list --select tag:raw --profiles-dir profiles --no-version-check
+          
+          # Проверка ODS слоя
+          echo "Validating ODS layer..."
+          dbt list --select tag:ods --profiles-dir profiles --no-version-check
+          
+          # Проверка DDS слоя
+          echo "Validating DDS layer..."
+          dbt list --select tag:dds --profiles-dir profiles --no-version-check
+          
+          # Проверка CDM слоя
+          echo "Validating CDM layer..."
+          dbt list --select tag:cdm --profiles-dir profiles --no-version-check
+          
+      - name: Note about dbt tests
+        run: |
+          cd dbt
+          echo "Note: dbt tests require database connection and are not run in CI"
+          echo "Tests should be run locally or in deployment environment"

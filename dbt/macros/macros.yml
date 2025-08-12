@@ -1,0 +1,382 @@
+version: 2
+
+macros:
+  - name: get_dq_threshold
+    description: "Получение порога DQ проверок для окружения"
+    arguments:
+      - name: environment
+        type: string
+        description: "Окружение (dev, test, prod)"
+    returns:
+      type: float
+      description: "Порог DQ проверок"
+
+  - name: log_dq_result
+    description: "Логирование результатов DQ проверок"
+    arguments:
+      - name: test_name
+        type: string
+        description: "Название теста"
+      - name: result
+        type: string
+        description: "Результат теста"
+      - name: expected
+        type: string
+        description: "Ожидаемое значение"
+      - name: actual
+        type: string
+        description: "Фактическое значение"
+      - name: severity
+        type: string
+        description: "Уровень важности"
+
+  - name: create_dq_summary_table
+    description: "Создание таблицы для хранения результатов DQ проверок"
+    returns:
+      type: string
+      description: "SQL для создания таблицы"
+
+  - name: insert_dq_result
+    description: "Вставка результата DQ проверки в таблицу"
+    arguments:
+      - name: test_name
+        type: string
+        description: "Название теста"
+      - name: table_name
+        type: string
+        description: "Название таблицы"
+      - name: column_name
+        type: string
+        description: "Название колонки"
+      - name: test_type
+        type: string
+        description: "Тип теста"
+      - name: expected_value
+        type: string
+        description: "Ожидаемое значение"
+      - name: actual_value
+        type: string
+        description: "Фактическое значение"
+      - name: result
+        type: string
+        description: "Результат теста"
+      - name: severity
+        type: string
+        description: "Уровень важности"
+      - name: error_message
+        type: string
+        description: "Сообщение об ошибке"
+
+  - name: get_dq_statistics
+    description: "Получение статистики DQ проверок"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Название таблицы"
+      - name: days_back
+        type: integer
+        description: "Количество дней назад"
+    returns:
+      type: table
+      description: "Статистика DQ проверок"
+
+  - name: alert_dq_failure
+    description: "Отправка алерта при провале DQ проверки"
+    arguments:
+      - name: test_name
+        type: string
+        description: "Название теста"
+      - name: table_name
+        type: string
+        description: "Название таблицы"
+      - name: column_name
+        type: string
+        description: "Название колонки"
+      - name: expected
+        type: string
+        description: "Ожидаемое значение"
+      - name: actual
+        type: string
+        description: "Фактическое значение"
+      - name: threshold
+        type: float
+        description: "Порог проверки"
+
+  - name: run_dq_suite
+    description: "Запуск набора DQ проверок"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Название таблицы"
+      - name: columns_config
+        type: list
+        description: "Конфигурация колонок для проверки"
+    returns:
+      type: list
+      description: "Результаты DQ проверок"
+
+  - name: clickhouse_partition_by_date
+    description: "Создание партиционирования по дате для ClickHouse"
+    arguments:
+      - name: column_name
+        type: string
+        description: "Колонка с датой"
+      - name: partition_type
+        type: string
+        description: "Тип партиционирования"
+    returns:
+      type: string
+      description: "SQL для партиционирования"
+
+  - name: clickhouse_engine
+    description: "Создание движка таблицы для ClickHouse"
+    arguments:
+      - name: engine_type
+        type: string
+        description: "Тип движка"
+      - name: order_by
+        type: string
+        description: "Колонки для ORDER BY"
+      - name: partition_by
+        type: string
+        description: "SQL для партиционирования"
+    returns:
+      type: string
+      description: "SQL для создания движка"
+
+  - name: clickhouse_index
+    description: "Создание индексов для ClickHouse"
+    arguments:
+      - name: columns
+        type: list
+        description: "Список колонок для индексов"
+      - name: index_type
+        type: string
+        description: "Тип индекса"
+    returns:
+      type: string
+      description: "SQL для создания индексов"
+
+  - name: clickhouse_incremental_strategy
+    description: "Стратегия инкрементальной загрузки для ClickHouse"
+    returns:
+      type: string
+      description: "SQL для инкрементальной загрузки"
+
+  - name: clickhouse_merge_operation
+    description: "Операция слияния для ClickHouse"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Название целевой таблицы"
+      - name: source_table
+        type: string
+        description: "Название исходной таблицы"
+      - name: merge_key
+        type: string
+        description: "Ключ для слияния"
+    returns:
+      type: string
+      description: "SQL для операции слияния"
+
+  - name: incremental_strategy_clickhouse
+    description: "Стратегия инкрементальной загрузки для ClickHouse"
+    returns:
+      type: string
+      description: "SQL для инкрементальной загрузки"
+
+  - name: get_incremental_columns
+    description: "Получение списка колонок для инкрементальной загрузки"
+    returns:
+      type: list
+      description: "Список колонок"
+
+  - name: incremental_merge_strategy
+    description: "Стратегия слияния для инкрементальной загрузки"
+    arguments:
+      - name: target_table
+        type: string
+        description: "Целевая таблица"
+      - name: source_table
+        type: string
+        description: "Исходная таблица"
+      - name: merge_key
+        type: string
+        description: "Ключ для слияния"
+    returns:
+      type: string
+      description: "SQL для стратегии слияния"
+
+  - name: incremental_delete_strategy
+    description: "Стратегия удаления для инкрементальной загрузки"
+    arguments:
+      - name: target_table
+        type: string
+        description: "Целевая таблица"
+      - name: source_table
+        type: string
+        description: "Исходная таблица"
+      - name: delete_key
+        type: string
+        description: "Ключ для удаления"
+    returns:
+      type: string
+      description: "SQL для стратегии удаления"
+
+  - name: incremental_upsert_strategy
+    description: "Стратегия upsert для инкрементальной загрузки"
+    arguments:
+      - name: target_table
+        type: string
+        description: "Целевая таблица"
+      - name: source_table
+        type: string
+        description: "Исходная таблица"
+      - name: unique_key
+        type: string
+        description: "Уникальный ключ"
+    returns:
+      type: string
+      description: "SQL для стратегии upsert"
+
+  - name: clickhouse_cluster_name
+    description: "Возвращает имя кластера ClickHouse"
+    returns:
+      type: string
+      description: "Имя кластера (dwh_prod)"
+
+  - name: clickhouse_replicated_engine
+    description: "Создает ENGINE для ReplicatedMergeTree таблиц с UUID и суффиксом _local"
+    arguments:
+      - name: engine_type
+        type: string
+        description: "Тип движка (по умолчанию MergeTree)"
+      - name: order_by
+        type: string
+        description: "ORDER BY выражение"
+      - name: partition_by
+        type: string
+        description: "PARTITION BY выражение"
+      - name: settings
+        type: string
+        description: "Дополнительные настройки"
+    returns:
+      type: string
+      description: "SQL для ReplicatedMergeTree движка"
+
+  - name: clickhouse_distributed_engine
+    description: "Создает ENGINE для Distributed таблиц, ссылающихся на _local таблицы"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы (без _local суффикса)"
+      - name: sharding_key
+        type: string
+        description: "Ключ шардирования"
+      - name: policy
+        type: string
+        description: "Политика распределения"
+    returns:
+      type: string
+      description: "SQL для Distributed движка"
+
+  - name: create_replicated_table
+    description: "Создание ReplicatedMergeTree таблицы на кластере с суффиксом _local"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы (будет добавлен суффикс _local)"
+      - name: columns
+        type: list
+        description: "Список колонок таблицы"
+      - name: engine_type
+        type: string
+        description: "Тип движка"
+      - name: order_by
+        type: string
+        description: "ORDER BY выражение"
+      - name: partition_by
+        type: string
+        description: "PARTITION BY выражение"
+      - name: settings
+        type: string
+        description: "Дополнительные настройки"
+    returns:
+      type: string
+      description: "SQL для создания ReplicatedMergeTree таблицы"
+
+  - name: create_distributed_table
+    description: "Создание Distributed таблицы, ссылающейся на _local таблицу"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя Distributed таблицы (без _local)"
+      - name: source_table
+        type: string
+        description: "Имя исходной таблицы (без _local)"
+      - name: sharding_key
+        type: string
+        description: "Ключ шардирования"
+      - name: policy
+        type: string
+        description: "Политика распределения"
+    returns:
+      type: string
+      description: "SQL для создания Distributed таблицы"
+
+  - name: clickhouse_cluster_insert_strategy
+    description: "Стратегия вставки для кластерных таблиц (использует _local таблицы)"
+    returns:
+      type: string
+      description: "SQL стратегия для вставки"
+
+  - name: clickhouse_cluster_select_strategy
+    description: "Стратегия выборки для кластерных таблиц (использует Distributed таблицы)"
+    returns:
+      type: string
+      description: "SQL стратегия для выборки"
+
+  - name: clickhouse_cluster_materialization_strategy
+    description: "Стратегия материализации для кластерных таблиц"
+    returns:
+      type: string
+      description: "SQL стратегия для материализации"
+
+  - name: clickhouse_cluster_alter_table
+    description: "ALTER операция для кластерных таблиц с поддержкой ON CLUSTER"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы (с _local суффиксом для ReplicatedMergeTree)"
+      - name: operation
+        type: string
+        description: "Тип операции ALTER"
+      - name: parameters
+        type: string
+        description: "Параметры операции"
+    returns:
+      type: string
+      description: "SQL для ALTER операции"
+
+  - name: clickhouse_cluster_drop_table
+    description: "DROP операция для кластерных таблиц с поддержкой ON CLUSTER"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы для удаления"
+    returns:
+      type: string
+      description: "SQL для DROP операции"
+
+  - name: clickhouse_cluster_delete_from
+    description: "DELETE операция для кластерных таблиц с поддержкой ON CLUSTER"
+    arguments:
+      - name: table_name
+        type: string
+        description: "Имя таблицы (с _local суффиксом)"
+      - name: where_condition
+        type: string
+        description: "Условие WHERE для удаления"
+    returns:
+      type: string
+      description: "SQL для DELETE операции"

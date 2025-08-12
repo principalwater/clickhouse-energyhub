@@ -1,0 +1,11 @@
+location_id,location_name,region,city,timezone,latitude,longitude,address,postal_code,country,is_active
+1,Main Office,Central,Moscow,Europe/Moscow,55.7558,37.6176,"Tverskaya St, 1",125009,Russia,1
+2,North Branch,North,St. Petersburg,Europe/Moscow,59.9311,30.3609,"Nevsky Prospekt, 28",191186,Russia,1
+3,South Facility,South,Krasnodar,Europe/Moscow,45.0448,38.9760,"Krasnaya St, 139",350000,Russia,1
+4,East Plant,East,Yekaterinburg,Asia/Yekaterinburg,56.8519,60.6122,"Lenin Ave, 41",620000,Russia,1
+5,West Hub,West,Kaliningrad,Europe/Kaliningrad,54.7074,20.5073,"Leninsky Prospekt, 30",236022,Russia,1
+6,Central Warehouse,Central,Kazan,Europe/Moscow,55.7887,49.1221,"Bauman St, 1",420111,Russia,1
+7,Research Center,North,Novosibirsk,Asia/Novosibirsk,55.0084,82.9357,"Lenin St, 1",630000,Russia,1
+8,Training Facility,South,Sochi,Europe/Moscow,43.6028,39.7342,"Kurortny Prospekt, 1",354000,Russia,1
+9,Data Center,East,Vladivostok,Asia/Vladivostok,43.1198,131.8869,"Svetlanskaya St, 1",690000,Russia,1
+10,Remote Station,West,Arkhangelsk,Europe/Moscow,64.5473,40.5567,"Lenin St, 1",163000,Russia,1

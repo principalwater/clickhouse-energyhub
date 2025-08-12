@@ -1,2 +1,0 @@
--- Placeholder for dbt staging models
--- Example: stg_nordpool_prices.sql
