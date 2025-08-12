@@ -109,12 +109,105 @@ class ClickHouseBackupManager:
         else:
             raise Exception("Не удалось найти доступные бэкапы")
     
-    def restore_backup(self, backup_name=None):
+    def get_backup_info(self, backup_name):
         """
-        Восстановление из бэкапа
+        Получение информации о бэкапе
+        
+        Args:
+            backup_name (str): Имя бэкапа
+        
+        Returns:
+            dict: Информация о бэкапе
+        """
+        cmd = f"docker exec clickhouse-backup clickhouse-backup list remote | grep '{backup_name}'"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        
+        if result.returncode == 0 and backup_name in result.stdout:
+            # Парсим информацию о бэкапе
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if backup_name in line:
+                    parts = line.split()
+                    if len(parts) >= 3:
+                        return {
+                            'name': parts[0],
+                            'size': parts[1],
+                            'created': parts[2] + ' ' + parts[3] if len(parts) > 3 else parts[2]
+                        }
+        return None
+
+    def get_current_tables_info(self):
+        """
+        Получение информации о текущих таблицах в ClickHouse
+        
+        Returns:
+            dict: Информация о таблицах
+        """
+        cmd = "docker exec clickhouse-01 clickhouse-client --query \"SELECT database, name, engine, total_rows, total_bytes FROM system.tables WHERE database NOT IN ('system', 'information_schema') ORDER BY database, name\""
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        
+        tables_info = {}
+        if result.returncode == 0:
+            lines = result.stdout.strip().split('\n')
+            if lines and lines[0].strip():
+                for line in lines:
+                    if line.strip():
+                        parts = line.split('\t')
+                        if len(parts) >= 5:
+                            db_table = f"{parts[0]}.{parts[1]}"
+                            tables_info[db_table] = {
+                                'engine': parts[2],
+                                'total_rows': parts[3],
+                                'total_bytes': parts[4]
+                            }
+        return tables_info
+
+    def compare_with_backup(self, backup_name):
+        """
+        Сравнение текущего состояния с бэкапом
+        
+        Args:
+            backup_name (str): Имя бэкапа для сравнения
+        
+        Returns:
+            dict: Результат сравнения
+        """
+        print(f"🔍 Сравнение текущего состояния с бэкапом: {backup_name}")
+        
+        # Получаем информацию о бэкапе
+        backup_info = self.get_backup_info(backup_name)
+        if not backup_info:
+            return {'needs_restore': True, 'reason': 'Backup not found'}
+        
+        # Получаем информацию о текущих таблицах
+        current_tables = self.get_current_tables_info()
+        
+        # Проверяем, есть ли таблицы в бэкапе
+        cmd = f"docker exec clickhouse-backup clickhouse-backup list remote | grep '{backup_name}'"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            return {'needs_restore': True, 'reason': 'Cannot access backup'}
+        
+        # Простая проверка: если бэкап существует и имеет размер > 0, считаем что есть изменения
+        if backup_info['size'] == '0B' or backup_info['size'] == '0':
+            return {'needs_restore': False, 'reason': 'Backup is empty'}
+        
+        # Проверяем, есть ли таблицы в текущей системе
+        if not current_tables:
+            return {'needs_restore': True, 'reason': 'No tables in current system'}
+        
+        # Для простоты считаем, что если бэкап существует и не пустой, то есть изменения
+        # В реальной системе здесь можно добавить более детальное сравнение
+        return {'needs_restore': True, 'reason': 'Backup contains data that may differ from current state'}
+
+    def restore_backup(self, backup_name=None, force=False):
+        """
+        Умное восстановление из бэкапа
         
         Args:
             backup_name (str): Имя бэкапа (если не указано, используется последний)
+            force (bool): Принудительное восстановление без проверки
         
         Returns:
             str: Результат восстановления
@@ -122,13 +215,48 @@ class ClickHouseBackupManager:
         if not backup_name:
             backup_name = self.get_latest_backup()
         
-        print(f"🔄 Восстановление из бэкапа: {backup_name}")
+        print(f"🔄 Подготовка к восстановлению из бэкапа: {backup_name}")
         
+        # Проверяем, нужно ли восстановление
+        if not force:
+            comparison = self.compare_with_backup(backup_name)
+            if not comparison['needs_restore']:
+                print(f"✅ Восстановление не требуется: {comparison['reason']}")
+                return f"Skipped restore from {backup_name}: {comparison['reason']}"
+            else:
+                print(f"📋 Восстановление необходимо: {comparison['reason']}")
+        
+        print(f"🔄 Выполнение восстановления из бэкапа: {backup_name}")
+        
+        # Сначала удаляем существующие таблицы, если они есть
+        print("🧹 Очистка существующих таблиц перед восстановлением...")
+        cleanup_cmd = f"docker exec clickhouse-backup clickhouse-backup restore_remote --schema --rm {backup_name}"
+        cleanup_result = subprocess.run(cleanup_cmd, shell=True, capture_output=True, text=True)
+        
+        # Теперь выполняем полное восстановление
         cmd = f"docker exec clickhouse-backup clickhouse-backup restore_remote {backup_name}"
-        result = self._run_command(cmd, "восстановления из бэкапа")
+        
+        # Выполняем команду с более терпимой обработкой stderr
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        
+        # Проверяем только return code, игнорируем stderr для восстановления
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() if result.stderr.strip() else result.stdout.strip()
+            if not error_msg:
+                error_msg = f"Command failed with return code {result.returncode}"
+            
+            print(f"❌ Ошибка восстановления из бэкапа: {error_msg}")
+            print(f"📋 Команда: {cmd}")
+            print(f"📋 Return code: {result.returncode}")
+            print(f"📋 Stdout: {result.stdout}")
+            print(f"📋 Stderr: {result.stderr}")
+            raise Exception(f"Ошибка восстановления из бэкапа: {error_msg}")
         
         print(f"✅ Восстановление из бэкапа {backup_name} выполнено успешно")
         print(f"📋 Вывод: {result.stdout}")
+        if result.stderr:
+            print(f"📋 Stderr (информационные сообщения): {result.stderr}")
+        
         return f"Restored from {backup_name}"
     
     def verify_backup(self, backup_name):

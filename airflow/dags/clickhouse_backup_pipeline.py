@@ -1,8 +1,45 @@
+"""
+ClickHouse Backup Pipeline DAG
+
+Этот DAG выполняет операции бэкапа и восстановления ClickHouse.
+
+Режимы работы:
+1. Обычный режим (по умолчанию): создание бэкапа, проверка, очистка старых бэкапов
+2. Режим восстановления: восстановление из указанного бэкапа
+
+Примеры использования:
+
+1. Обычный запуск (создание бэкапа):
+   - Запускается по расписанию каждый день в 3:00
+   - Выполняются шаги: list_backups -> create_backup -> verify_backup -> cleanup_old_backups -> health_check
+
+2. Запуск в режиме восстановления через JSON триггер:
+   {
+     "restore_mode": true,
+     "backup_name": "backup_2025_01_15_03_00_00"
+   }
+
+3. Запуск в режиме восстановления через Airflow UI:
+   - В разделе "Trigger DAG" указать JSON конфигурацию:
+   {
+     "restore_mode": true,
+     "backup_name": "backup_2025_01_15_03_00_00"
+   }
+
+Параметры:
+- restore_mode (bool): если true, запускается режим восстановления
+- backup_name (str): имя бэкапа для восстановления (опционально, по умолчанию используется последний бэкап)
+- force_restore (bool): принудительное восстановление без проверки изменений (по умолчанию false)
+"""
+
 from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.models import Variable
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.utils.trigger_rule import TriggerRule
+from airflow.operators.empty import EmptyOperator
 import os
 import sys
 
@@ -72,10 +109,20 @@ def restore_from_backup(**context):
         
         manager = ClickHouseBackupManager()
         
-        # Получаем имя бэкапа из параметров или используем последний
+        # Получаем параметры из конфигурации
         backup_name = context['dag_run'].conf.get('backup_name', None)
+        force_restore = context['dag_run'].conf.get('force_restore', False)
         
-        result = manager.restore_backup(backup_name)
+        if backup_name:
+            print(f"🔄 Восстановление из указанного бэкапа: {backup_name}")
+        else:
+            print("🔄 Восстановление из последнего доступного бэкапа")
+        
+        if force_restore:
+            print("🔧 Принудительное восстановление активировано")
+        
+        result = manager.restore_backup(backup_name, force=force_restore)
+        print(f"✅ Восстановление завершено: {result}")
         return result
             
     except Exception as e:
@@ -138,16 +185,20 @@ def health_check_backup():
         print(f"❌ Ошибка при проверке здоровья: {e}")
         return "Unhealthy"
 
-# Определение задач
-create_backup_task = PythonOperator(
-    task_id='create_backup',
-    python_callable=create_backup,
-    dag=backup_dag,
-)
+def choose_mode(**context):
+    """Выбирает режим работы: бэкап или восстановление"""
+    restore_mode = context['dag_run'].conf.get('restore_mode', False)
+    
+    if restore_mode:
+        print("🔄 Режим восстановления активирован")
+        return 'restore_backup'
+    else:
+        print("💾 Режим создания бэкапа активирован")
+        return 'create_backup'
 
-verify_backup_task = PythonOperator(
-    task_id='verify_backup',
-    python_callable=verify_backup,
+# Определение задач
+start_task = EmptyOperator(
+    task_id='start',
     dag=backup_dag,
 )
 
@@ -157,26 +208,58 @@ list_backups_task = PythonOperator(
     dag=backup_dag,
 )
 
+mode_choice = BranchPythonOperator(
+    task_id='choose_mode',
+    python_callable=choose_mode,
+    dag=backup_dag,
+)
+
+create_backup_task = PythonOperator(
+    task_id='create_backup',
+    python_callable=create_backup,
+    dag=backup_dag,
+    trigger_rule=TriggerRule.NONE_FAILED,
+)
+
+verify_backup_task = PythonOperator(
+    task_id='verify_backup',
+    python_callable=verify_backup,
+    dag=backup_dag,
+    trigger_rule=TriggerRule.NONE_FAILED,
+)
+
 restore_backup_task = PythonOperator(
     task_id='restore_backup',
     python_callable=restore_from_backup,
     dag=backup_dag,
+    trigger_rule=TriggerRule.NONE_FAILED,
 )
 
 cleanup_backups_task = PythonOperator(
     task_id='cleanup_old_backups',
     python_callable=cleanup_old_backups,
     dag=backup_dag,
+    trigger_rule=TriggerRule.NONE_FAILED,
 )
 
 health_check_task = PythonOperator(
     task_id='health_check',
     python_callable=health_check_backup,
     dag=backup_dag,
+    trigger_rule=TriggerRule.NONE_FAILED,
 )
 
-# Определение зависимостей для обычного бэкапа
-create_backup_task >> verify_backup_task >> cleanup_backups_task >> health_check_task
+end_task = EmptyOperator(
+    task_id='end',
+    dag=backup_dag,
+    trigger_rule=TriggerRule.NONE_FAILED,
+)
 
-# Альтернативный путь для восстановления (можно запускать вручную с параметрами)
-list_backups_task >> restore_backup_task >> health_check_task
+# Определение зависимостей
+start_task >> list_backups_task >> mode_choice
+
+# Ветка для создания бэкапа
+mode_choice >> create_backup_task >> verify_backup_task >> cleanup_backups_task >> health_check_task >> end_task
+
+# Ветка для восстановления
+mode_choice >> restore_backup_task >> health_check_task >> end_task
