@@ -179,9 +179,13 @@ flowchart LR
 ```bash
 # 1. Клонирование репозитория
 git clone https://github.com/principalwater/clickhouse-energyhub.git
-cd clickhouse-energyhub
+cd clickhouse-energyhub/infra/terraform
 
-# 2. Запуск развертывания
+# 2. Создание файла с переменными (копируем заполненный dummy-пример)
+cp terraform.tfvars.example terraform.tfvars
+
+# 3. Запуск развертывания
+cd ../../
 ./deploy.sh
 ```
 
