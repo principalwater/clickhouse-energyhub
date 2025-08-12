@@ -22,15 +22,18 @@ clean-targets:
 # Настройки для ClickHouse
 models:
   ${project_name}:
-    staging:
-      +materialized: view
-      +schema: staging
-    marts:
+    raw:
       +materialized: table
-      +schema: marts
-    intermediate:
-      +materialized: view
-      +schema: intermediate
+      +schema: raw
+    ods:
+      +materialized: table
+      +schema: ods
+    dds:
+      +materialized: table
+      +schema: dds
+    cdm:
+      +materialized: table
+      +schema: cdm
 
 # Настройки для тестов
 tests:

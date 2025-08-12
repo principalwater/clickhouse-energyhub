@@ -2,173 +2,128 @@ version: 2
 
 sources:
   - name: raw
-    description: "Сырые данные из ClickHouse"
-    database: otus_default
-    schema: raw_data
+    description: "Raw data sources from ClickHouse raw database"
+    database: raw
+    schema: raw
     tables:
-      - name: energy_consumption
-        description: "Сырые данные энергопотребления"
+      - name: energy_consumption_raw
+        description: "Raw energy consumption data"
         columns:
           - name: device_id
-            description: "Уникальный идентификатор устройства"
+            description: "Unique device identifier"
             tests:
               - not_null
-              - unique
-          - name: timestamp
-            description: "Временная метка измерения"
-            tests:
-              - not_null
-              - is_timestamp
-          - name: energy_kwh
-            description: "Потребление энергии в кВт*ч"
-            tests:
-              - not_null
-              - accepted_range:
-                  min_value: 0
-                  max_value: 1000
           - name: location_id
-            description: "Идентификатор локации"
+            description: "Location identifier"
             tests:
               - not_null
-              - relationships:
-                  to: ref('dim_locations')
-                  field: location_id
-          - name: device_type
-            description: "Тип устройства"
+          - name: timestamp
+            description: "Measurement timestamp"
             tests:
               - not_null
-              - accepted_values:
-                  values: ['smart_meter', 'solar_panel', 'battery_storage', 'wind_turbine']
-          - name: voltage_v
-            description: "Напряжение в вольтах"
+          - name: energy_kwh
+            description: "Energy consumption in kWh"
             tests:
-              - accepted_range:
-                  min_value: 0
-                  max_value: 1000
-          - name: current_a
-            description: "Ток в амперах"
+              - not_null
+          - name: voltage
+            description: "Voltage measurement"
             tests:
-              - accepted_range:
-                  min_value: 0
-                  max_value: 1000
+              - not_null
+          - name: current_amp
+            description: "Current measurement in amperes"
+            tests:
+              - not_null
           - name: power_factor
-            description: "Коэффициент мощности"
-            tests:
-              - accepted_range:
-                  min_value: 0
-                  max_value: 1
-          - name: _timestamp
-            description: "Временная метка загрузки данных"
+            description: "Power factor"
             tests:
               - not_null
-              - is_timestamp
+          - name: temperature
+            description: "Temperature measurement"
+          - name: humidity
+            description: "Humidity measurement"
+          - name: raw_data
+            description: "Raw JSON data"
 
-      - name: devices
-        description: "Сырые данные устройств"
+      - name: devices_raw
+        description: "Raw device data"
         columns:
           - name: device_id
-            description: "Уникальный идентификатор устройства"
+            description: "Unique device identifier"
             tests:
               - not_null
               - unique
           - name: device_name
-            description: "Название устройства"
+            description: "Device name"
             tests:
               - not_null
           - name: device_type
-            description: "Тип устройства"
+            description: "Type of device"
             tests:
               - not_null
           - name: location_id
-            description: "Идентификатор локации"
+            description: "Location identifier"
+            tests:
+              - not_null
+          - name: manufacturer
+            description: "Device manufacturer"
+            tests:
+              - not_null
+          - name: model
+            description: "Device model"
             tests:
               - not_null
           - name: installation_date
-            description: "Дата установки"
+            description: "Device installation date"
             tests:
               - not_null
+          - name: last_maintenance_date
+            description: "Last maintenance date"
           - name: status
-            description: "Статус устройства"
+            description: "Device status"
             tests:
               - not_null
+          - name: raw_data
+            description: "Raw JSON data"
 
-      - name: device_types
-        description: "Сырые данные типов устройств"
-        columns:
-          - name: device_type_id
-            description: "Уникальный идентификатор типа устройства"
-            tests:
-              - not_null
-              - unique
-          - name: device_type_name
-            description: "Название типа устройства"
-            tests:
-              - not_null
-          - name: category
-            description: "Категория устройства"
-            tests:
-              - not_null
-          - name: description
-            description: "Описание типа устройства"
-            tests:
-              - not_null
-
-  - name: reference
-    description: "Справочные данные"
-    database: default
-    schema: reference_data
-    tables:
-      - name: locations
-        description: "Справочник локаций"
+      - name: locations_raw
+        description: "Raw location data"
         columns:
           - name: location_id
-            description: "Уникальный идентификатор локации"
+            description: "Unique location identifier"
             tests:
               - not_null
               - unique
           - name: location_name
-            description: "Название локации"
+            description: "Location name"
             tests:
               - not_null
-          - name: location_type
-            description: "Тип локации"
+          - name: region
+            description: "Geographic region"
+            tests:
+              - not_null
+          - name: city
+            description: "City name"
             tests:
               - not_null
           - name: address
-            description: "Адрес локации"
+            description: "Full address"
             tests:
               - not_null
-
-  - name: kafka
-    description: "Данные из Kafka"
-    database: default
-    schema: kafka_data
-    tables:
-      - name: devices
-        description: "Данные устройств из Kafka"
-        columns:
-          - name: device_id
-            description: "Уникальный идентификатор устройства"
+          - name: latitude
+            description: "Latitude coordinate"
             tests:
               - not_null
-              - unique
-          - name: device_name
-            description: "Название устройства"
+          - name: longitude
+            description: "Longitude coordinate"
             tests:
               - not_null
-          - name: device_type
-            description: "Тип устройства"
+          - name: timezone
+            description: "Timezone"
             tests:
               - not_null
-          - name: location_id
-            description: "Идентификатор локации"
+          - name: country
+            description: "Country name"
             tests:
               - not_null
-          - name: installation_date
-            description: "Дата установки"
-            tests:
-              - not_null
-          - name: status
-            description: "Статус устройства"
-            tests:
-              - not_null
+          - name: raw_data
+            description: "Raw JSON data"

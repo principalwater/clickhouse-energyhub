@@ -1,34 +1,23 @@
 {{
   config(
-    materialized='view',
-    schema='raw',
-    tags=['raw', 'devices', 'kafka_data']
+    materialized='table',
+    schema='raw'
   )
 }}
 
--- Сырые данные об устройствах из Kafka
--- Первичная обработка без DQ проверок
-
+-- Raw слой: сырые данные об устройствах
 SELECT 
   device_id,
   device_name,
   device_type,
+  location_id,
   manufacturer,
   model,
-  serial_number,
   installation_date,
   last_maintenance_date,
   status,
-  location_id,
-  technical_specs,
-  metadata,
-  _kafka_topic,
-  _kafka_partition,
-  _kafka_offset,
-  _kafka_timestamp,
-  created_at,
-  updated_at
-FROM {{ source('kafka', 'devices') }}
-
--- Базовая фильтрация по времени
-WHERE _kafka_timestamp >= now() - INTERVAL 30 DAY
+  raw_data,
+  -- Добавляем метаданные
+  now() as inserted_at,
+  'raw_data' as source
+FROM {{ source('raw', 'devices_raw') }}

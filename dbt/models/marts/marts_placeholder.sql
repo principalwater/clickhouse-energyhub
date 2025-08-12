@@ -1,2 +1,0 @@
--- Placeholder for dbt mart models
--- Example: fct_prices_hourly.sql
