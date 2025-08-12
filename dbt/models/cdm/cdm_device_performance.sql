@@ -1,7 +1,8 @@
 {{
   config(
     materialized='table',
-    schema='cdm'
+    schema='cdm',
+    tags=['cdm']
   )
 }}
 

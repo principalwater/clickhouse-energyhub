@@ -1,7 +1,8 @@
 {{
   config(
     materialized='table',
-    schema='dds'
+    schema='dds',
+    tags=['dds']
   )
 }}
 

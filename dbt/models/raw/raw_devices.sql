@@ -1,7 +1,8 @@
 {{
   config(
     materialized='table',
-    schema='raw'
+    schema='raw',
+    tags=['raw']
   )
 }}
 

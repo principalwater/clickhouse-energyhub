@@ -1,7 +1,8 @@
 {{
   config(
     materialized='table',
-    schema='ods'
+    schema='ods',
+    tags=['ods']
   )
 }}
 
