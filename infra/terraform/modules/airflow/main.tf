@@ -103,7 +103,7 @@ locals {
     "AIRFLOW__CORE__STANDALONE_DAG_PROCESSOR=true",
     "AIRFLOW__CELERY__WORKER_CONCURRENCY=1",
     "AIRFLOW__CELERY__WORKER_ENABLE_REMOTE_CONTROL=false",
-    "_PIP_ADDITIONAL_REQUIREMENTS=clickhouse-connect>=0.7.0 python-dotenv>=1.0.0 requests>=2.31.0 kafka-python>=2.0.2 apache-airflow-providers-dbt-cloud>=1.0.0 dbt-core==1.10.7 dbt-clickhouse==1.9.2",
+    "_PIP_ADDITIONAL_REQUIREMENTS=clickhouse-connect>=0.7.0 python-dotenv>=1.0.0 requests>=2.31.0 kafka-python>=2.0.2 apache-airflow-providers-dbt-cloud>=1.0.0 dbt-core==1.10.7 dbt-clickhouse==1.9.2 psutil>=5.9.0 docker>=6.0.0 apache-airflow-providers-telegram==4.8.2",
     "AIRFLOW_CONFIG=/opt/airflow/config/airflow.cfg",
     "_AIRFLOW_DB_MIGRATE=true",
     # ClickHouse переменные для backup операций
@@ -120,7 +120,10 @@ locals {
     "DBT_PROJECT_DIR=/opt/airflow/dbt",
     "_AIRFLOW_WWW_USER_CREATE=true",
     "_AIRFLOW_WWW_USER_USERNAME=${var.airflow_admin_user}",
-    "_AIRFLOW_WWW_USER_PASSWORD=${var.airflow_admin_password}"
+    "_AIRFLOW_WWW_USER_PASSWORD=${var.airflow_admin_password}",
+    # Telegram переменные для уведомлений
+    "TELEGRAM_BOT_TOKEN=${var.telegram_bot_token}",
+    "TELEGRAM_CHAT_ID=${var.telegram_chat_id}"
   ] : []
 
   airflow_common_volumes = var.deploy_airflow ? [
@@ -571,7 +574,7 @@ resource "null_resource" "setup_airflow_connections" {
         sleep 5
       done
       
-      # Создание подключений
+      # Создание подключений (ClickHouse, Kafka, Telegram)
       docker exec airflow-api-server airflow connections add \
         'clickhouse_default' \
         --conn-type 'http' \
@@ -585,6 +588,19 @@ resource "null_resource" "setup_airflow_connections" {
         'kafka_default' \
         --conn-type 'kafka' \
         --conn-extra '{"bootstrap.servers": "kafka:9092"}' || echo "Подключение Kafka уже существует"
+      
+      # Создание Telegram соединения (если указаны переменные)
+      if [ ! -z "${var.telegram_bot_token}" ] && [ ! -z "${var.telegram_chat_id}" ]; then
+        echo "🔧 Создание Telegram соединения..."
+        docker exec airflow-api-server airflow connections add \
+          'telegram_default' \
+          --conn-type 'telegram' \
+          --conn-password '${var.telegram_bot_token}' \
+          --conn-extra '{"chat_id": "${var.telegram_chat_id}"}' || echo "Подключение Telegram уже существует"
+        echo "✅ Telegram соединение настроено"
+      else
+        echo "⚠️ Telegram переменные не указаны, соединение не создается"
+      fi
       
       echo "✅ Настройка подключений завершена"
     EOT

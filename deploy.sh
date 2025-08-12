@@ -106,6 +106,12 @@ if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo "  cd dbt/tools && ./dbt-manager.sh serve         # Запуск веб-сервера документации"
     
     echo ""
+    echo "📊 Настройка BI-инструментов:"
+    echo "  🌐 Metabase: http://localhost:3000"
+    echo "  🌐 Superset: http://localhost:8088"
+    echo "  📖 Руководство по настройке подключений к ClickHouse:"
+    echo "     docs/BI_CLICKHOUSE_SETUP.md"
+    echo ""
     echo "🔧 Устранение неполадок:"
     echo "  cd dbt/tools && ./diagnose.sh                  # Диагностика окружения"
     echo "  cd dbt/tools && ./dbt-manager.sh debug         # Отладочная информация"

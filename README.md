@@ -19,7 +19,7 @@ ClickHouse EnergyHub - это полнофункциональная платф�
 - 🧹 **dbt** для трансформации данных и обеспечения качества
 - 📊 **Автоматическая дедупликация** данных каждые 5 минут
 - 🔍 **Динамическое обновление** dbt источников на основе ClickHouse
-- 📈 **Superset & Metabase** для визуализации и самообслуживания
+- 📈 **Superset & Metabase** для визуализации и самообслуживания (настройка подключений - вручную)
 - 🚀 **CI/CD пайплайн** для автоматизации развертывания
 - 📋 **Terraform** для управления инфраструктурой как код
 
@@ -81,9 +81,14 @@ graph TB
     
     %% BI инструменты
     subgraph "📊 BI & Analytics"
-        SUPERSET[Apache Superset<br/>v3.1.1]
-        METABASE[Metabase<br/>v0.49.8]
+        SUPERSET[Apache Superset<br/>v3.1.1<br/>+ Мониторинг]
+        METABASE[Metabase<br/>v0.55.12<br/>+ ClickHouse встроен]
         POSTGRES[PostgreSQL<br/>v16]
+    end
+    
+    %% Алертинг
+    subgraph "🚨 Alerting"
+        TELEGRAM[Telegram Bot<br/>Airflow уведомления]
     end
     
     %% Потоки данных
@@ -111,18 +116,24 @@ graph TB
     CDM --> METABASE
     CDM --> POSTGRES
     
+    %% Алертинг
+    AIRFLOW --> TELEGRAM
+    SUPERSET --> TELEGRAM
+    
     %% Стили
     classDef source fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef layer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef processing fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
     classDef cluster fill:#fce4ec,stroke:#880e4f,stroke-width:3px
     classDef bi fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef alerting fill:#ffebee,stroke:#c62828,stroke-width:3px
     
     class KAFKA,API,FILES source
     class RAW,ODS,DDS,CDM layer
     class AIRFLOW,DBT,MINIO processing
     class CH1,CH2,CH3,CH4,CHK1,CHK2,CHK3 cluster
     class SUPERSET,METABASE,POSTGRES bi
+    class TELEGRAM alerting
 ```
 
 ### 🔄 Поток данных
@@ -179,9 +190,13 @@ flowchart LR
 ```bash
 # 1. Клонирование репозитория
 git clone https://github.com/principalwater/clickhouse-energyhub.git
-cd clickhouse-energyhub
+cd clickhouse-energyhub/infra/terraform
 
-# 2. Запуск развертывания
+# 2. Создание файла с переменными (копируем заполненный dummy-пример)
+cp terraform.tfvars.example terraform.tfvars
+
+# 3. Запуск развертывания
+cd ../../
 ./deploy.sh
 ```
 
@@ -222,6 +237,7 @@ clickhouse-energyhub/
 │   └── README_clickhouse_backup.md              # DAG бэкапов
 ├── 🏗️ infra/                                    # Инфраструктура
 │   ├── terraform/                               # Terraform конфигурация
+│   │   └── cleanup_airflow.sh                   # Скрипт очистки Airflow при зависании
 │   └── docker/                                  # Docker конфигурация
 ├── 🔄 airflow/                                  # Apache Airflow
 │   └── dags/                                    # DAG'и для оркестрации
@@ -249,6 +265,10 @@ clickhouse-energyhub/
 - **Планировщик задач** с настраиваемым расписанием
 - **Мониторинг** выполнения и уведомления об ошибках
 - **Интеграция** с ClickHouse и dbt
+- **Telegram алертинг** для мониторинга DAG'ов и системы
+- **Автоматическая настройка** Telegram соединения при деплое
+- **Автоматическая настройка** ClickHouse соединений в Metabase и Superset
+- **Автоматическое восстановление** при зависании через скрипт очистки
 
 ### 🧹 dbt (data build tool)
 
@@ -261,9 +281,9 @@ clickhouse-energyhub/
 
 ### 📊 Визуализация
 
-- **Apache Superset** - аналитические дашборды
+- **Apache Superset** - аналитические дашборды и мониторинг
 - **Metabase** - самообслуживание аналитики
-- **Grafana** - мониторинг и алерты
+- **Airflow алертинг** - уведомления в Telegram
 
 ## 🔄 Автоматизация
 
@@ -315,8 +335,10 @@ clickhouse-energyhub/
 - **Error Rate** - частота ошибок
 - **Storage Usage** - использование хранилища
 
-### 🚨 Алерты
+### 🚨 Алерты и мониторинг
 
+- **Telegram алертинг** - уведомления через Airflow DAG'и
+- **Мониторинговые дашборды** - в Apache Superset
 - **Pipeline Failures** - сбои в пайплайнах
 - **Data Quality Issues** - проблемы с качеством
 - **Performance Degradation** - деградация производительности
@@ -350,7 +372,8 @@ clickhouse-energyhub/
 ### 🎯 Краткосрочные (3-6 месяцев)
 - [ ] Реализация Data Lineage
 - [ ] Автоматизация тестирования данных
-- [ ] Улучшение мониторинга
+- [ ] Настройка Telegram алертинга через Airflow DAG'и
+- [ ] Создание мониторинговых дашбордов в Superset
 - [ ] Machine Learning модели
 
 ### 🚀 Среднесрочные (6-12 месяцев)
@@ -405,6 +428,7 @@ clickhouse-energyhub/
 ### 🔗 Полезные ссылки
 
 - **Документация:** [docs/](docs/)
+- **📊 Настройка BI-инструментов:** [docs/BI_CLICKHOUSE_SETUP.md](docs/BI_CLICKHOUSE_SETUP.md)
 - **Issues:** [GitHub Issues](https://github.com/principalwater/clickhouse-energyhub/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/principalwater/clickhouse-energyhub/discussions)
 - **Wiki:** [GitHub Wiki](https://github.com/principalwater/clickhouse-energyhub/wiki)

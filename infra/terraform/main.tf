@@ -196,6 +196,10 @@ module "bi_infra" {
   airflow_pg_password = var.airflow_postgres_password
   airflow_pg_db       = var.airflow_postgres_db
 
+  # ClickHouse connection settings
+  clickhouse_bi_user     = var.bi_user_name
+  clickhouse_bi_password = var.bi_user_password
+
   # Fallback passwords for local logic (используем те же переменные, что и выше)
   # metabase_pg_password и superset_pg_password уже переданы выше как var.pg_password
 
@@ -279,6 +283,10 @@ module "airflow" {
   kafka_network_name = module.kafka.network_name
   kafka_topic_1min   = var.topic_1min
   kafka_topic_5min   = var.topic_5min
+
+  # Интеграция с Telegram
+  telegram_bot_token = var.telegram_bot_token
+  telegram_chat_id   = var.telegram_chat_id
 
   depends_on = [module.clickhouse_cluster, module.kafka, module.postgres]
 }

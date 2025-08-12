@@ -100,8 +100,8 @@ clickhouse_energyhub:
       type: clickhouse
       host: clickhouse-01
       port: 9000
-      user: principalwater
-      password: UnixSpace@11.
+      user: <ваш_super_user_name>
+      password: <ваш_super_user_password>
       database: default
       schema: default
       threads: 4

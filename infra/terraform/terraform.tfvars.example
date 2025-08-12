@@ -48,6 +48,10 @@ airflow_admin_password       = "AirflowAdmin456!"
 airflow_fernet_key           = "BjijBVSuN3ik8oHEXMxd_D3TLTn2xsGVYcyFvILY9jk="
 airflow_webserver_secret_key = "j3nkv2GAx2gl+bXsUtERWvPXeZOAs/i8lQglFwg2+F8="
 
+# Telegram Bot Configuration (опционально)
+telegram_bot_token = "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"  # Замените на реальный токен
+telegram_chat_id   = "-1001234567890"                        # Замените на реальный Chat ID
+
 # ----------------------------------
 # НАСТРОЙКИ РАЗВЕРТЫВАНИЯ
 # ----------------------------------

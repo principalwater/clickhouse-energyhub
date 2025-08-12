@@ -260,7 +260,7 @@ AND table LIKE 'your_table_name%';
 - ClickHouse кластер `dwh_prod`
 - Kafka с нужными топиками
 - Python библиотеки: `clickhouse-connect`, `kafka-python`
-- Права пользователя `principalwater` в ClickHouse
+- Права super user в ClickHouse (переменная `super_user_name` из `terraform.tfvars`)
 
 ## Безопасность
 

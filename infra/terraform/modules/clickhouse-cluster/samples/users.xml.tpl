@@ -18,7 +18,8 @@
         </${super_user_name}>
         <${bi_user_name}>
             <max_memory_usage>500000000</max_memory_usage>
-            <readonly>1</readonly>
+            <readonly>2</readonly>
+            <allow_ddl>0</allow_ddl>
             <load_balancing>random</load_balancing>
         </${bi_user_name}>
     </profiles>
@@ -44,7 +45,6 @@
                 <ip>::/0</ip>
             </networks>
             <quota>${bi_user_name}</quota>
-            <readonly>1</readonly>
         </${bi_user_name}>
         <!-- Полностью удаляем стандартного пользователя default (без этого cluster-auth по TCP может ругаться на несуществующего default) -->
         <default remove="true"/>

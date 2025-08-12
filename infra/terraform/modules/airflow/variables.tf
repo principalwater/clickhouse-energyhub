@@ -112,48 +112,62 @@ variable "scripts_path" {
   default     = "../../scripts"
 }
 
-# ---- Section: Интеграция с ClickHouse ----
+# ---- Section: ClickHouse интеграция ----
 variable "clickhouse_network_name" {
-  description = "Имя Docker-сети ClickHouse для интеграции."
+  description = "Имя Docker-сети ClickHouse для подключения."
   type        = string
 }
 
 variable "clickhouse_bi_user" {
-  description = "Имя BI пользователя ClickHouse для подключения Airflow."
+  description = "Имя пользователя ClickHouse для BI операций."
   type        = string
 }
 
 variable "clickhouse_bi_password" {
-  description = "Пароль BI пользователя ClickHouse для подключения Airflow."
+  description = "Пароль пользователя ClickHouse для BI операций."
   type        = string
   sensitive   = true
 }
 
 variable "clickhouse_super_user" {
-  description = "Имя суперпользователя ClickHouse для backup операций."
+  description = "Имя суперпользователя ClickHouse."
   type        = string
 }
 
 variable "clickhouse_super_password" {
-  description = "Пароль суперпользователя ClickHouse для backup операций."
+  description = "Пароль суперпользователя ClickHouse."
   type        = string
   sensitive   = true
 }
 
-# ---- Section: Интеграция с Kafka ----
+# ---- Section: Kafka интеграция ----
 variable "kafka_network_name" {
-  description = "Имя Docker-сети Kafka для интеграции."
+  description = "Имя Docker-сети Kafka для подключения."
   type        = string
 }
 
 variable "kafka_topic_1min" {
-  description = "Название топика Kafka для 1-минутных данных."
+  description = "Название топика Kafka для данных с интервалом 1 минута."
   type        = string
 }
 
 variable "kafka_topic_5min" {
-  description = "Название топика Kafka для 5-минутных данных."
+  description = "Название топика Kafka для данных с интервалом 5 минут."
   type        = string
+}
+
+# ---- Section: Telegram интеграция ----
+variable "telegram_bot_token" {
+  description = "Токен Telegram бота для отправки уведомлений."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "telegram_chat_id" {
+  description = "ID чата/канала Telegram для отправки уведомлений."
+  type        = string
+  default     = ""
 }
 
 variable "enable_flower" {

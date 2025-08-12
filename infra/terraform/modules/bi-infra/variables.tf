@@ -220,3 +220,15 @@ variable "airflow_pg_db" {
   type        = string
   default     = "airflow"
 }
+
+# ---- Section: ClickHouse connection settings ----
+variable "clickhouse_bi_user" {
+  description = "Имя пользователя ClickHouse для BI операций."
+  type        = string
+}
+
+variable "clickhouse_bi_password" {
+  description = "Пароль пользователя ClickHouse для BI операций."
+  type        = string
+  sensitive   = true
+}
