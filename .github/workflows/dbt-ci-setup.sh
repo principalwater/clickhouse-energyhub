@@ -13,7 +13,7 @@ cat > dbt_project.yml << 'EOF'
 name: 'clickhouse_energyhub'
 version: '1.0.0'
 config-version: 2
-require-dbt-version: ">=1.10.0"
+require-dbt-version: ">=1.7.0"
 
 # Настройки профиля
 profile: 'clickhouse_energyhub'

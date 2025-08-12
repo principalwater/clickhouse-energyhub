@@ -168,7 +168,13 @@ jobs:
 
       - name: Install dbt-clickhouse
         run: |
-          pip install dbt-clickhouse==1.7.3
+          pip install 'dbt-core>=1.10.0'
+          pip install 'dbt-clickhouse>=1.9.0'
+          
+      - name: Check dbt version
+        run: |
+          cd dbt
+          dbt --version
           
       - name: Create dbt project structure
         run: |
@@ -242,13 +248,13 @@ jobs:
         run: |
           cd dbt
           echo "Validating dbt project structure..."
-          dbt parse --profiles-dir profiles
+          dbt parse --profiles-dir profiles --no-version-check
 
       - name: Check dbt models syntax
         run: |
           cd dbt
           echo "Checking dbt models syntax..."
-          dbt parse --profiles-dir profiles
+          dbt parse --profiles-dir profiles --no-version-check
           
       - name: Validate dbt model layers
         run: |
@@ -257,19 +263,19 @@ jobs:
           
           # Проверка RAW слоя
           echo "Validating RAW layer..."
-          dbt list --select tag:raw --profiles-dir profiles
+          dbt list --select tag:raw --profiles-dir profiles --no-version-check
           
           # Проверка ODS слоя
           echo "Validating ODS layer..."
-          dbt list --select tag:ods --profiles-dir profiles
+          dbt list --select tag:ods --profiles-dir profiles --no-version-check
           
           # Проверка DDS слоя
           echo "Validating DDS layer..."
-          dbt list --select tag:dds --profiles-dir profiles
+          dbt list --select tag:dds --profiles-dir profiles --no-version-check
           
           # Проверка CDM слоя
           echo "Validating CDM layer..."
-          dbt list --select tag:cdm --profiles-dir profiles
+          dbt list --select tag:cdm --profiles-dir profiles --no-version-check
           
       - name: Note about dbt tests
         run: |
