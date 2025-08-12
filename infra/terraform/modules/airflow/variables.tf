@@ -129,6 +129,17 @@ variable "clickhouse_bi_password" {
   sensitive   = true
 }
 
+variable "clickhouse_super_user" {
+  description = "Имя суперпользователя ClickHouse для backup операций."
+  type        = string
+}
+
+variable "clickhouse_super_password" {
+  description = "Пароль суперпользователя ClickHouse для backup операций."
+  type        = string
+  sensitive   = true
+}
+
 # ---- Section: Интеграция с Kafka ----
 variable "kafka_network_name" {
   description = "Имя Docker-сети Kafka для интеграции."

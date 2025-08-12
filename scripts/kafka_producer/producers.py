@@ -50,18 +50,29 @@ class DataProducer:
     def send_data(self, topic: str, data: dict):
         """
         Sends a single data record to the specified topic.
+        Returns record metadata on success, None on failure.
         """
         try:
             future = self.producer.send(topic, data)
-            # Wait for the message to be sent
+            # Wait for the message to be sent with timeout
             record_metadata = future.get(timeout=10)
-            print(f"Sent to {topic}: {data}")
+            print(f"✅ Sent to {topic}: {data}")
+            print(f"📍 Metadata: partition={record_metadata.partition}, offset={record_metadata.offset}")
             return record_metadata
         except Exception as e:
-            print(f"An error occurred while sending data: {e}")
+            print(f"❌ An error occurred while sending data: {e}")
             # Try to reconnect
-            self.producer = self._create_producer()
-            return None
+            try:
+                self.producer = self._create_producer()
+                print("🔄 Reconnected to Kafka, retrying...")
+                # Retry once
+                future = self.producer.send(topic, data)
+                record_metadata = future.get(timeout=10)
+                print(f"✅ Retry successful - sent to {topic}: {data}")
+                return record_metadata
+            except Exception as retry_error:
+                print(f"❌ Retry failed: {retry_error}")
+                return None
 
     def flush(self):
         """Flushes any buffered records."""

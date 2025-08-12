@@ -19,6 +19,36 @@ class ClickHouseBackupManager:
     Менеджер для работы с бэкапами ClickHouse
     """
     
+    def _run_command(self, cmd, description="Command"):
+        """
+        Универсальная функция для выполнения команд с обработкой ошибок
+        
+        Args:
+            cmd (str): Команда для выполнения
+            description (str): Описание команды для логирования
+            
+        Returns:
+            subprocess.CompletedProcess: Результат выполнения команды
+            
+        Raises:
+            Exception: Если команда завершилась с ошибкой
+        """
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() if result.stderr.strip() else result.stdout.strip()
+            if not error_msg:
+                error_msg = f"Command failed with return code {result.returncode}"
+            
+            print(f"❌ Ошибка {description}: {error_msg}")
+            print(f"📋 Команда: {cmd}")
+            print(f"📋 Return code: {result.returncode}")
+            print(f"📋 Stdout: {result.stdout}")
+            print(f"📋 Stderr: {result.stderr}")
+            raise Exception(f"Ошибка {description}: {error_msg}")
+            
+        return result
+    
     def __init__(self):
         self.super_user = os.getenv("CH_USER", "default")
         self.super_password = os.getenv("CH_PASSWORD", "")
@@ -40,15 +70,11 @@ class ClickHouseBackupManager:
         print(f"🔄 Создание бэкапа: {backup_name}")
         
         cmd = f"docker exec clickhouse-backup clickhouse-backup create_remote '{backup_name}'"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = self._run_command(cmd, "создания бэкапа")
         
-        if result.returncode == 0:
-            print(f"✅ Бэкап {backup_name} создан успешно")
-            print(f"📋 Вывод: {result.stdout}")
-            return backup_name
-        else:
-            print(f"❌ Ошибка создания бэкапа: {result.stderr}")
-            raise Exception(f"Ошибка создания бэкапа: {result.stderr}")
+        print(f"✅ Бэкап {backup_name} создан успешно")
+        print(f"📋 Вывод: {result.stdout}")
+        return backup_name
     
     def list_backups(self):
         """
@@ -60,15 +86,11 @@ class ClickHouseBackupManager:
         print("📋 Получение списка бэкапов...")
         
         cmd = "docker exec clickhouse-backup clickhouse-backup list remote"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = self._run_command(cmd, "получения списка бэкапов")
         
-        if result.returncode == 0:
-            print("✅ Список бэкапов:")
-            print(result.stdout)
-            return result.stdout
-        else:
-            print(f"❌ Ошибка получения списка бэкапов: {result.stderr}")
-            raise Exception(f"Ошибка получения списка бэкапов: {result.stderr}")
+        print("✅ Список бэкапов:")
+        print(result.stdout)
+        return result.stdout
     
     def get_latest_backup(self):
         """
@@ -78,9 +100,9 @@ class ClickHouseBackupManager:
             str: Имя последнего бэкапа
         """
         cmd = "docker exec clickhouse-backup clickhouse-backup list remote | grep '^backup' | tail -1 | awk '{print $1}'"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = self._run_command(cmd, "получения последнего бэкапа")
         
-        if result.returncode == 0 and result.stdout.strip():
+        if result.stdout.strip():
             backup_name = result.stdout.strip()
             print(f"📋 Последний бэкап: {backup_name}")
             return backup_name
@@ -103,15 +125,11 @@ class ClickHouseBackupManager:
         print(f"🔄 Восстановление из бэкапа: {backup_name}")
         
         cmd = f"docker exec clickhouse-backup clickhouse-backup restore_remote {backup_name}"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = self._run_command(cmd, "восстановления из бэкапа")
         
-        if result.returncode == 0:
-            print(f"✅ Восстановление из бэкапа {backup_name} выполнено успешно")
-            print(f"📋 Вывод: {result.stdout}")
-            return f"Restored from {backup_name}"
-        else:
-            print(f"❌ Ошибка восстановления: {result.stderr}")
-            raise Exception(f"Ошибка восстановления: {result.stderr}")
+        print(f"✅ Восстановление из бэкапа {backup_name} выполнено успешно")
+        print(f"📋 Вывод: {result.stdout}")
+        return f"Restored from {backup_name}"
     
     def verify_backup(self, backup_name):
         """
@@ -126,12 +144,15 @@ class ClickHouseBackupManager:
         print(f"🔍 Проверка целостности бэкапа: {backup_name}")
         
         cmd = f"docker exec clickhouse-backup clickhouse-backup list remote | grep '{backup_name}'"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        
-        if result.returncode == 0 and backup_name in result.stdout:
-            print(f"✅ Бэкап {backup_name} найден и доступен")
-            return True
-        else:
+        try:
+            result = self._run_command(cmd, "проверки бэкапа")
+            if backup_name in result.stdout:
+                print(f"✅ Бэкап {backup_name} найден и доступен")
+                return True
+            else:
+                print(f"❌ Бэкап {backup_name} не найден или недоступен")
+                return False
+        except Exception:
             print(f"❌ Бэкап {backup_name} не найден или недоступен")
             return False
     
@@ -148,13 +169,12 @@ class ClickHouseBackupManager:
         print(f"🗑️ Удаление бэкапа: {backup_name}")
         
         cmd = f"docker exec clickhouse-backup clickhouse-backup delete remote {backup_name}"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        
-        if result.returncode == 0:
+        try:
+            result = self._run_command(cmd, "удаления бэкапа")
             print(f"✅ Бэкап {backup_name} удален успешно")
             return True
-        else:
-            print(f"❌ Ошибка удаления бэкапа {backup_name}: {result.stderr}")
+        except Exception as e:
+            print(f"❌ Ошибка удаления бэкапа {backup_name}: {e}")
             return False
     
     def cleanup_old_backups(self, keep_count=7):
@@ -206,14 +226,13 @@ class ClickHouseBackupManager:
         """
         print("🔍 Тестирование подключения к ClickHouse...")
         
-        cmd = f"docker exec -i clickhouse-01 clickhouse-client --user {self.super_user} --password {self.super_password} --query 'SELECT 1'"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        
-        if result.returncode == 0:
+        try:
+            cmd = f"docker exec -i clickhouse-01 clickhouse-client --user {self.super_user} --password {self.super_password} --query 'SELECT 1'"
+            result = self._run_command(cmd, "тестирования подключения к ClickHouse")
             print("✅ Подключение к ClickHouse успешно")
             return True
-        else:
-            print(f"❌ Ошибка подключения к ClickHouse: {result.stderr}")
+        except Exception as e:
+            print(f"❌ Ошибка подключения к ClickHouse: {e}")
             return False
     
     def simulate_failure_and_restore(self, table_name="test_db.sample_table"):
@@ -235,24 +254,21 @@ class ClickHouseBackupManager:
             # Имитируем сбой - удаляем таблицу
             print(f"🗑️ Удаление таблицы {table_name}...")
             drop_cmd = f"docker exec -i clickhouse-01 clickhouse-client --user {self.super_user} --password {self.super_password} --query 'DROP TABLE IF EXISTS {table_name} ON CLUSTER dwh_test SYNC;'"
-            result = subprocess.run(drop_cmd, shell=True, capture_output=True, text=True)
             
-            if result.returncode != 0:
-                print(f"⚠️ Ошибка удаления таблицы: {result.stderr}")
+            try:
+                self._run_command(drop_cmd, "удаления таблицы")
+            except Exception as e:
+                print(f"⚠️ Ошибка удаления таблицы: {e}")
             
             # Восстанавливаем из бэкапа
             self.restore_backup(backup_name)
             
             # Проверяем восстановление
             check_cmd = f"docker exec -i clickhouse-01 clickhouse-client --user {self.super_user} --password {self.super_password} --query 'SELECT count() FROM {table_name};'"
-            result = subprocess.run(check_cmd, shell=True, capture_output=True, text=True)
+            result = self._run_command(check_cmd, "проверки восстановления")
             
-            if result.returncode == 0:
-                print(f"✅ Восстановление успешно! Количество записей: {result.stdout.strip()}")
-                return "Test passed"
-            else:
-                print(f"❌ Ошибка проверки восстановления: {result.stderr}")
-                return "Test failed"
+            print(f"✅ Восстановление успешно! Количество записей: {result.stdout.strip()}")
+            return "Test passed"
                 
         except Exception as e:
             print(f"❌ Ошибка при тестировании: {e}")

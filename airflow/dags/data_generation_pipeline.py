@@ -29,17 +29,37 @@ river_flow_dag = DAG(
     tags=['river-flow', 'kafka', 'data-generation'],
 )
 
+
 def generate_river_flow_data():
     """Генерация данных речного стока и отправка в Kafka"""
     try:
         # Импортируем необходимые модули
-        from generate_river_flow import main
+        from schemas import generate_river_flow_data as gen_data
+        from producers import DataProducer
         
-        # Генерируем 1 сообщение с задержкой 0 секунд
-        main(iterations=1, delay=0)
+        print("🔄 Генерация данных речного стока...")
+        
+        # Создаем producer без SASL аутентификации (работает с обычным Kafka)
+        producer = DataProducer(broker_url='kafka:9092')
+        
+        # Генерируем данные
+        data = gen_data()
+        print(f"📊 Сгенерированы данные: {data}")
+        
+        # Отправляем в Kafka и проверяем результат
+        result = producer.send_data('energy_data_1min', data)
+        
+        if result is None:
+            raise Exception("Не удалось отправить данные в Kafka - нет подтверждения доставки")
+        
+        # Убеждаемся, что данные отправлены
+        producer.flush()
+        producer.close()
         
         print("✅ Данные речного стока успешно сгенерированы и отправлены в Kafka")
+        print(f"📋 Отправлено в топик energy_data_1min: {data}")
         return "Success"
+        
     except Exception as e:
         print(f"❌ Ошибка при генерации данных речного стока: {e}")
         raise

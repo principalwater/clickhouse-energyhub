@@ -12,9 +12,9 @@ from clickhouse_utils import execute_sql_script
 def generate_devices_data():
     """Генерация данных об устройствах"""
     sql_script = """
-    INSERT INTO raw.raw_devices (device_id, device_name, device_type, location_id, capacity_mw, installation_date, status)
+    INSERT INTO raw.devices_raw (device_id, device_name, device_type, location_id, manufacturer, model, installation_date, last_maintenance_date, status, raw_data)
     SELECT 
-        'DEV_' || toString(number) as device_id,
+        number as device_id,
         'Устройство ' || toString(number) as device_name,
         CASE 
             WHEN number % 3 = 0 THEN 'ГЭС'
@@ -22,13 +22,17 @@ def generate_devices_data():
             ELSE 'СЭС'
         END as device_type,
         (number % 10) + 1 as location_id,
-        round(rand() * 1000 + 100, 2) as capacity_mw,
+        CASE 
+            WHEN number % 3 = 0 THEN 'Росэнергомаш'
+            WHEN number % 3 = 1 THEN 'Силовые машины'
+            ELSE 'ТРТ'
+        END as manufacturer,
+        'Модель-' || toString(number) as model,
         addYears(toDate('2020-01-01'), number % 5) as installation_date,
-        'active' as status
-    FROM numbers(1, 50)
-    WHERE NOT EXISTS (
-        SELECT 1 FROM raw.raw_devices WHERE device_id = 'DEV_' || toString(number)
-    );
+        addDays(toDate('2024-01-01'), number % 30) as last_maintenance_date,
+        'active' as status,
+        '{}' as raw_data
+    FROM numbers(1, 50);
     """
     
     result = execute_sql_script(sql_script)
@@ -41,7 +45,7 @@ def generate_devices_data():
 def generate_locations_data():
     """Генерация данных о локациях"""
     sql_script = """
-    INSERT INTO raw.raw_locations (location_id, location_name, region, latitude, longitude, timezone)
+    INSERT INTO raw.locations_raw (location_id, location_name, region, city, address, latitude, longitude, timezone, country, raw_data)
     SELECT 
         number as location_id,
         'Регион ' || toString(number) as location_name,
@@ -51,13 +55,14 @@ def generate_locations_data():
             WHEN number % 4 = 2 THEN 'Сибирский'
             ELSE 'Дальневосточный'
         END as region,
+        'Город-' || toString(number) as city,
+        'ул. Энергетиков, д. ' || toString(number) as address,
         round(rand() * 20 + 55, 4) as latitude,
         round(rand() * 40 + 30, 4) as longitude,
-        'Europe/Moscow' as timezone
-    FROM numbers(1, 10)
-    WHERE NOT EXISTS (
-        SELECT 1 FROM raw.raw_locations WHERE location_id = number
-    );
+        'Europe/Moscow' as timezone,
+        'Россия' as country,
+        '{}' as raw_data
+    FROM numbers(1, 10);
     """
     
     result = execute_sql_script(sql_script)
@@ -70,18 +75,19 @@ def generate_locations_data():
 def generate_consumption_data():
     """Генерация данных о потреблении энергии"""
     sql_script = """
-    INSERT INTO raw.raw_energy_consumption (consumption_id, location_id, timestamp, consumption_mwh, peak_load_mw, avg_load_mw)
+    INSERT INTO raw.energy_consumption_raw (device_id, location_id, timestamp, energy_kwh, voltage, current_amp, power_factor, temperature, humidity, raw_data)
     SELECT 
-        'CONS_' || toString(number) as consumption_id,
+        number as device_id,
         (number % 10) + 1 as location_id,
         addHours(now(), -number) as timestamp,
-        round(rand() * 1000 + 500, 2) as consumption_mwh,
-        round(rand() * 500 + 200, 2) as peak_load_mw,
-        round(rand() * 300 + 150, 2) as avg_load_mw
-    FROM numbers(1, 100)
-    WHERE NOT EXISTS (
-        SELECT 1 FROM raw.raw_energy_consumption WHERE consumption_id = 'CONS_' || toString(number)
-    );
+        round(rand() * 1000 + 500, 2) as energy_kwh,
+        round(rand() * 50 + 220, 2) as voltage,
+        round(rand() * 100 + 10, 2) as current_amp,
+        round(rand() * 0.3 + 0.7, 3) as power_factor,
+        round(rand() * 30 + 20, 1) as temperature,
+        round(rand() * 20 + 40, 1) as humidity,
+        '{}' as raw_data
+    FROM numbers(1, 100);
     """
     
     result = execute_sql_script(sql_script)

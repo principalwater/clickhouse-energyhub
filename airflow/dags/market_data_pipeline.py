@@ -29,17 +29,38 @@ market_data_dag = DAG(
     tags=['market-data', 'kafka', 'data-generation'],
 )
 
+
+
 def generate_market_data():
     """Генерация рыночных данных и отправка в Kafka"""
     try:
         # Импортируем необходимые модули
-        from generate_market_data import main
+        from schemas import generate_market_data as gen_data
+        from producers import DataProducer
         
-        # Генерируем 1 сообщение с задержкой 0 секунд
-        main(iterations=1, delay=0)
+        print("🔄 Генерация рыночных данных...")
+        
+        # Создаем producer без SASL аутентификации (работает с обычным Kafka)
+        producer = DataProducer(broker_url='kafka:9092')
+        
+        # Генерируем данные
+        data = gen_data()
+        print(f"📊 Сгенерированы данные: {data}")
+        
+        # Отправляем в Kafka и проверяем результат
+        result = producer.send_data('energy_data_5min', data)
+        
+        if result is None:
+            raise Exception("Не удалось отправить данные в Kafka - нет подтверждения доставки")
+        
+        # Убеждаемся, что данные отправлены
+        producer.flush()
+        producer.close()
         
         print("✅ Рыночные данные успешно сгенерированы и отправлены в Kafka")
+        print(f"📋 Отправлено в топик energy_data_5min: {data}")
         return "Success"
+        
     except Exception as e:
         print(f"❌ Ошибка при генерации рыночных данных: {e}")
         raise

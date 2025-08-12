@@ -269,9 +269,11 @@ module "airflow" {
   scripts_path         = var.scripts_path
 
   # Интеграция с ClickHouse
-  clickhouse_network_name = module.clickhouse_cluster.network_name
-  clickhouse_bi_user      = var.bi_user_name
-  clickhouse_bi_password  = var.bi_user_password
+  clickhouse_network_name    = module.clickhouse_cluster.network_name
+  clickhouse_bi_user         = var.bi_user_name
+  clickhouse_bi_password     = var.bi_user_password
+  clickhouse_super_user      = var.super_user_name
+  clickhouse_super_password  = var.super_user_password
 
   # Интеграция с Kafka
   kafka_network_name = module.kafka.network_name

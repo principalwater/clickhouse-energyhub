@@ -103,9 +103,21 @@ locals {
     "AIRFLOW__CORE__STANDALONE_DAG_PROCESSOR=true",
     "AIRFLOW__CELERY__WORKER_CONCURRENCY=1",
     "AIRFLOW__CELERY__WORKER_ENABLE_REMOTE_CONTROL=false",
-    "_PIP_ADDITIONAL_REQUIREMENTS=clickhouse-connect>=0.7.0 python-dotenv>=1.0.0 requests>=2.31.0 kafka-python>=2.0.2 apache-airflow-providers-dbt-cloud>=1.0.0",
+    "_PIP_ADDITIONAL_REQUIREMENTS=clickhouse-connect>=0.7.0 python-dotenv>=1.0.0 requests>=2.31.0 kafka-python>=2.0.2 apache-airflow-providers-dbt-cloud>=1.0.0 dbt-core==1.10.7 dbt-clickhouse==1.9.2",
     "AIRFLOW_CONFIG=/opt/airflow/config/airflow.cfg",
     "_AIRFLOW_DB_MIGRATE=true",
+    # ClickHouse переменные для backup операций
+    "CH_USER=${var.clickhouse_super_user}",
+    "CH_PASSWORD=${var.clickhouse_super_password}",
+    # ClickHouse переменные для общих подключений (для clickhouse_utils.py)
+    "CLICKHOUSE_HOST=clickhouse-01",
+    "CLICKHOUSE_PORT=8123",
+    "CLICKHOUSE_USER=${var.clickhouse_super_user}",
+    "CLICKHOUSE_PASSWORD=${var.clickhouse_super_password}",
+    "CLICKHOUSE_DATABASE=raw",
+    # dbt переменные окружения
+    "DBT_PROFILES_DIR=/opt/airflow/dbt/profiles",
+    "DBT_PROJECT_DIR=/opt/airflow/dbt",
     "_AIRFLOW_WWW_USER_CREATE=true",
     "_AIRFLOW_WWW_USER_USERNAME=${var.airflow_admin_user}",
     "_AIRFLOW_WWW_USER_PASSWORD=${var.airflow_admin_password}"
@@ -131,6 +143,14 @@ locals {
     {
       host_path      = abspath(var.scripts_path)
       container_path = "/opt/airflow/scripts"
+    },
+    {
+      host_path      = abspath("${path.root}/../../dbt")
+      container_path = "/opt/airflow/dbt"
+    },
+    {
+      host_path      = "/var/run/docker.sock"
+      container_path = "/var/run/docker.sock"
     }
   ] : []
 }
@@ -543,7 +563,7 @@ resource "null_resource" "setup_airflow_connections" {
       echo "🔧 Ожидание готовности API сервера..."
       
       for i in {1..60}; do
-        if curl -s http://localhost:${var.airflow_webserver_port}/health > /dev/null; then
+        if curl -s http://localhost:${var.airflow_webserver_port}/api/v2/monitor/health > /dev/null; then
           echo "✅ API сервер готов"
           break
         fi
