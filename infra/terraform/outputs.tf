@@ -21,6 +21,7 @@ output "dbt_info" {
     python_path = module.dbt[0].dbt_python_path
     profiles_path = module.dbt[0].dbt_profiles_path
     clickhouse_connection = module.dbt[0].dbt_clickhouse_connection
+    clickhouse_database = module.dbt[0].clickhouse_database_info
     versions = module.dbt[0].dbt_versions
     activation_script = module.dbt[0].dbt_activation_script
   } : null

@@ -8,25 +8,18 @@ clickhouse_energyhub:
       database: ${clickhouse_database}
       user: ${clickhouse_user}
       password: ${clickhouse_password}
-      schema: default
+      schema: ${clickhouse_database}
       threads: 4
       keepalives_idle: 0
       connect_timeout: 10
       send_receive_timeout: 300
       sync_request_timeout: 5
-      
-      # Настройки для ClickHouse
-      clickhouse_settings:
-        use_default_database: 1
-        allow_experimental_object_type: 1
-        allow_experimental_map_type: 1
-        allow_experimental_low_cardinality_type: 1
-        
-      # Настройки для DQ проверок
-      dq_settings:
-        enable_dq_checks: true
-        dq_schema: dq_checks
-        dq_failure_threshold: 0.1
+      secure: false
+      verify: false
+      compression: false
+      settings:
+        use_numpy: true
+        use_pandas_numpy: true
         
     prod:
       type: clickhouse
@@ -35,25 +28,18 @@ clickhouse_energyhub:
       database: ${clickhouse_database}
       user: ${clickhouse_user}
       password: ${clickhouse_password}
-      schema: default
+      schema: ${clickhouse_database}
       threads: 8
       keepalives_idle: 0
       connect_timeout: 10
       send_receive_timeout: 300
       sync_request_timeout: 5
-      
-      # Настройки для ClickHouse
-      clickhouse_settings:
-        use_default_database: 1
-        allow_experimental_object_type: 1
-        allow_experimental_map_type: 1
-        allow_experimental_low_cardinality_type: 1
-        
-      # Настройки для DQ проверок
-      dq_settings:
-        enable_dq_checks: true
-        dq_schema: dq_checks
-        dq_failure_threshold: 0.05  # Более строгие проверки для прода
+      secure: false
+      verify: false
+      compression: false
+      settings:
+        use_numpy: true
+        use_pandas_numpy: true
         
     test:
       type: clickhouse
@@ -62,22 +48,15 @@ clickhouse_energyhub:
       database: ${clickhouse_database}
       user: ${clickhouse_user}
       password: ${clickhouse_password}
-      schema: default
+      schema: ${clickhouse_database}
       threads: 2
       keepalives_idle: 0
       connect_timeout: 10
       send_receive_timeout: 300
       sync_request_timeout: 5
-      
-      # Настройки для ClickHouse
-      clickhouse_settings:
-        use_default_database: 1
-        allow_experimental_object_type: 1
-        allow_experimental_map_type: 1
-        allow_experimental_low_cardinality_type: 1
-        
-      # Настройки для DQ проверок
-      dq_settings:
-        enable_dq_checks: true
-        dq_schema: dq_checks
-        dq_failure_threshold: 0.2  # Более мягкие проверки для тестов
+      secure: false
+      verify: false
+      compression: false
+      settings:
+        use_numpy: true
+        use_pandas_numpy: true

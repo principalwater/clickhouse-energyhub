@@ -1,21 +1,43 @@
 output "dbt_project_path" {
   description = "Путь к dbt проекту"
-  value       = var.dbt_base_path
+  value       = local.dbt_base_path
 }
 
 output "dbt_environment_path" {
   description = "Путь к виртуальному окружению dbt"
-  value       = "${var.dbt_base_path}/dbt_env"
+  value       = "${local.dbt_base_path}/dbt_env"
 }
 
 output "dbt_python_path" {
   description = "Путь к Python интерпретатору dbt"
-  value       = "${var.dbt_base_path}/dbt_env/bin/python"
+  value       = "${local.dbt_base_path}/dbt_env/bin/python"
 }
 
 output "dbt_profiles_path" {
   description = "Путь к профилям dbt"
   value       = local.dbt_profiles_path
+}
+
+output "dbt_logs_path" {
+  description = "Путь к логам dbt"
+  value       = local.dbt_logs_path
+}
+
+output "dbt_target_path" {
+  description = "Путь к target директории dbt"
+  value       = local.dbt_target_path
+}
+
+output "clickhouse_database_info" {
+  description = "Информация о созданной базе данных ClickHouse"
+  value = {
+    database_name = "otus_default"
+    cluster_name  = "dwh_prod"
+    host          = local.clickhouse_host
+    port          = local.clickhouse_port
+    user          = local.clickhouse_user
+    status        = "created"
+  }
 }
 
 output "dbt_clickhouse_connection" {
@@ -39,5 +61,5 @@ output "dbt_versions" {
 
 output "dbt_activation_script" {
   description = "Путь к скрипту активации dbt окружения"
-  value       = "${var.dbt_base_path}/activate_dbt.sh"
+  value       = "${local.dbt_base_path}/activate_dbt.sh"
 }

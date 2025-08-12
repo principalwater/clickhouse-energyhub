@@ -68,7 +68,7 @@ clickhouse_energyhub:
       host: clickhouse-01
       port: 9000
       database: otus_default  # Не используйте 'default'!
-      user: bi_user
+      user: principalwater  # Используем super_user для полных прав
       password: ${DBT_CLICKHOUSE_PASSWORD}
       schema: default
       threads: 4

@@ -37,7 +37,7 @@ ${project_name}/
 - **Хост**: clickhouse-01
 - **Порт**: 9000
 - **База данных**: ${clickhouse_database}
-- **Пользователь**: bi_user
+- **Пользователь**: ${clickhouse_user} (principalwater для полных прав)
 
 ## Data Quality проверки
 
@@ -170,4 +170,4 @@ ORDER BY test_date DESC;
 ---
 
 **Версия**: 1.0.0  
-**Последнее обновление**: ${timestamp()}
+**Последнее обновление**: 2025-01-27

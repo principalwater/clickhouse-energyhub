@@ -242,7 +242,7 @@ resource "docker_container" "ch_nodes" {
 resource "null_resource" "mk_local_minio_dir" {
   count = var.storage_type == "s3_ssd" ? 1 : 0
   provisioner "local-exec" {
-    command = "mkdir -p ${var.local_minio_path}"
+    command = "mkdir -p ${var.local_minio_path} ${var.local_minio_path}/../logs ${var.local_minio_path}/../config"
   }
 }
 
@@ -293,7 +293,7 @@ resource "null_resource" "wait_for_local_minio" {
 resource "null_resource" "mk_local_backup_minio_dir" {
   count = var.storage_type == "local_storage" ? 1 : 0
   provisioner "local-exec" {
-    command = "mkdir -p ${var.local_backup_minio_path}"
+    command = "mkdir -p ${var.local_backup_minio_path} ${var.local_backup_minio_path}/../logs ${var.local_backup_minio_path}/../config"
   }
 }
 

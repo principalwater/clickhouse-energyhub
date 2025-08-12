@@ -155,7 +155,7 @@ variable "remote_minio_path" {
 variable "local_backup_minio_path" {
   description = "Путь к данным для локального MinIO (backup)"
   type        = string
-  default     = "../minio_backup/data"
+  default     = "../../volumes/minio/backup"
 }
 
 variable "remote_host_name" {

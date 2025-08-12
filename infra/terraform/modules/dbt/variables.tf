@@ -53,13 +53,25 @@ variable "clickhouse_database" {
 }
 
 variable "clickhouse_user" {
-  description = "Пользователь ClickHouse для dbt"
+  description = "Пользователь ClickHouse для dbt (должен иметь полные права)"
   type        = string
-  default     = "bi_user"
+  default     = "principalwater"
 }
 
 variable "clickhouse_password" {
   description = "Пароль пользователя ClickHouse для dbt"
+  type        = string
+  sensitive   = true
+}
+
+variable "super_user_name" {
+  description = "Имя суперпользователя ClickHouse для создания объектов"
+  type        = string
+  default     = "principalwater"
+}
+
+variable "super_user_password" {
+  description = "Пароль суперпользователя ClickHouse для создания объектов"
   type        = string
   sensitive   = true
 }
