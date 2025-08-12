@@ -41,6 +41,14 @@ target/
 dbt/profiles/profiles.yml
 dbt/profiles/*.yml
 
+# Terraform generated dbt files
+dbt/dq_macros.sql
+dbt/dq_test.sql
+dbt/profiles.yml
+dbt/dbt_project.yml
+dbt/package-lock.yml
+dbt/dbt_env/
+
 # IDE
 .idea/
 .vscode/
@@ -58,6 +66,3 @@ dbt/profiles/*.yml
 *.bak
 *.backup
 *.old
-dbt/package-lock.yml
-dbt/dbt_project.yml
-dbt/macros/dq_macros.yml

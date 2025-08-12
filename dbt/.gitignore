@@ -6,6 +6,11 @@ dbt_project.yml.bak
 /dbt/profiles/
 /dbt/package_lock.yml
 
+# Terraform generated files
+dq_macros.sql
+dq_test.sql
+profiles.yml
+
 # Python
 __pycache__/
 *.py[cod]

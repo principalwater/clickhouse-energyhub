@@ -251,9 +251,9 @@ resource "null_resource" "setup_dbt_environment" {
 }
 
 # Создание базового макроса для DQ проверок
-resource "local_file" "dq_macros_yml" {
-  content    = templatefile("${path.module}/templates/dq_macros.yml.tpl", {})
-  filename   = "${local.dbt_macros_path}/dq_macros.yml"
+resource "local_file" "dq_macros_sql" {
+  content    = templatefile("${path.module}/templates/dq_macros.sql.tpl", {})
+  filename   = "${local.dbt_macros_path}/dq_macros.sql"
   depends_on = [null_resource.create_dbt_structure]
 }
 
