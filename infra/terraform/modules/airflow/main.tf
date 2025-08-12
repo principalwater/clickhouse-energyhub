@@ -103,7 +103,7 @@ locals {
     "AIRFLOW__CORE__STANDALONE_DAG_PROCESSOR=true",
     "AIRFLOW__CELERY__WORKER_CONCURRENCY=1",
     "AIRFLOW__CELERY__WORKER_ENABLE_REMOTE_CONTROL=false",
-    "_PIP_ADDITIONAL_REQUIREMENTS=",
+    "_PIP_ADDITIONAL_REQUIREMENTS=clickhouse-connect>=0.7.0 python-dotenv>=1.0.0 requests>=2.31.0 kafka-python>=2.0.2 apache-airflow-providers-dbt-cloud>=1.0.0",
     "AIRFLOW_CONFIG=/opt/airflow/config/airflow.cfg",
     "_AIRFLOW_DB_MIGRATE=true",
     "_AIRFLOW_WWW_USER_CREATE=true",
@@ -127,6 +127,10 @@ locals {
     {
       host_path      = abspath(var.airflow_config_path)
       container_path = "/opt/airflow/config"
+    },
+    {
+      host_path      = abspath(var.scripts_path)
+      container_path = "/opt/airflow/scripts"
     }
   ] : []
 }

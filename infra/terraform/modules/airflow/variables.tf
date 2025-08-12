@@ -85,7 +85,7 @@ variable "airflow_webserver_secret_key" {
 variable "airflow_dags_path" {
   description = "Путь к директории с DAG файлами Airflow."
   type        = string
-  default     = "../../volumes/airflow/dags"
+  default     = "../../airflow/dags"
 }
 
 variable "airflow_logs_path" {
@@ -104,6 +104,12 @@ variable "airflow_config_path" {
   description = "Путь к директории с конфигурацией Airflow."
   type        = string
   default     = "../../volumes/airflow/config"
+}
+
+variable "scripts_path" {
+  description = "Путь к директории со скриптами для Airflow."
+  type        = string
+  default     = "../../scripts"
 }
 
 # ---- Section: Интеграция с ClickHouse ----

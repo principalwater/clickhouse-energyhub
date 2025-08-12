@@ -1,0 +1,5 @@
+clickhouse-connect>=0.7.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+kafka-python>=2.0.2
+apache-airflow-providers-dbt-cloud>=1.0.0

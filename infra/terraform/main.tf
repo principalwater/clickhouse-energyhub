@@ -266,6 +266,7 @@ module "airflow" {
   airflow_logs_path    = var.airflow_logs_path
   airflow_plugins_path = var.airflow_plugins_path
   airflow_config_path  = var.airflow_config_path
+  scripts_path         = var.scripts_path
 
   # Интеграция с ClickHouse
   clickhouse_network_name = module.clickhouse_cluster.network_name
