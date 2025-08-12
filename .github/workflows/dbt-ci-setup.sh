@@ -76,8 +76,8 @@ vars:
   dq_alert_email: "admin@energyhub.local"
 EOF
 
-# Создаем profiles.yml для CI (offline mode)
-cat > profiles/profiles.yml << 'EOF'
+          # Создаем profiles.yml для CI (offline mode)
+          cat > profiles/profiles.yml << 'EOF'
 clickhouse_energyhub:
   target: test
   outputs:
@@ -98,5 +98,7 @@ clickhouse_energyhub:
         use_numpy: true
         use_pandas_numpy: true
 EOF
+          
+          echo "profiles.yml created successfully"
 
 echo "dbt project structure created successfully"

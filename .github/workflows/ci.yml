@@ -155,6 +155,8 @@ jobs:
   dbt-check:
     runs-on: ubuntu-latest
     needs: terraform
+    env:
+      DBT_PROFILES_DIR: ./dbt/profiles
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -240,13 +242,13 @@ jobs:
         run: |
           cd dbt
           echo "Validating dbt project structure..."
-          dbt parse
+          dbt parse --profiles-dir profiles
 
       - name: Check dbt models syntax
         run: |
           cd dbt
           echo "Checking dbt models syntax..."
-          dbt parse
+          dbt parse --profiles-dir profiles
           
       - name: Validate dbt model layers
         run: |
@@ -255,19 +257,19 @@ jobs:
           
           # Проверка RAW слоя
           echo "Validating RAW layer..."
-          dbt list --select tag:raw
+          dbt list --select tag:raw --profiles-dir profiles
           
           # Проверка ODS слоя
           echo "Validating ODS layer..."
-          dbt list --select tag:ods
+          dbt list --select tag:ods --profiles-dir profiles
           
           # Проверка DDS слоя
           echo "Validating DDS layer..."
-          dbt list --select tag:dds
+          dbt list --select tag:dds --profiles-dir profiles
           
           # Проверка CDM слоя
           echo "Validating CDM layer..."
-          dbt list --select tag:cdm
+          dbt list --select tag:cdm --profiles-dir profiles
           
       - name: Note about dbt tests
         run: |
