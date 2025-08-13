@@ -44,6 +44,12 @@ variable "airflow_postgres_connection_string" {
   sensitive   = true
 }
 
+variable "airflow_postgres_password" {
+  description = "Пароль пользователя PostgreSQL для Airflow."
+  type        = string
+  sensitive   = true
+}
+
 variable "postgres_network_name" {
   description = "Имя Docker-сети PostgreSQL для подключения к базе данных."
   type        = string

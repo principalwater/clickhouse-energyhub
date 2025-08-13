@@ -254,6 +254,7 @@ module "airflow" {
 
   # PostgreSQL (используем модуль postgres)
   airflow_postgres_connection_string = module.postgres.airflow_db_connection_string
+  airflow_postgres_password          = var.airflow_postgres_password
   postgres_network_name              = module.postgres.postgres_network_name
 
   # Redis

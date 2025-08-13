@@ -18,3 +18,7 @@ clickhouse-connect>=0.7.0
 
 # Timezone support for Moscow time (UTC+3)
 pytz>=2023.3
+
+# Database dependencies for DAG monitoring
+sqlalchemy>=1.4.0
+psycopg2-binary>=2.9.0
