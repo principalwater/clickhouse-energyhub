@@ -2,7 +2,7 @@
 Продакшн DAG для мониторинга и алертинга в Apache Airflow.
 
 Этот DAG отслеживает:
-- Состояние DAG'ов (падения, ошибки)
+- Состояние DAG Run (падения, ошибки)
 - Системные метрики (CPU, RAM, Docker)
 - Состояние ClickHouse кластера
 - Отправляет уведомления в Telegram
@@ -23,6 +23,7 @@ import os
 import json
 import psutil
 import docker
+import logging
 from datetime import datetime, timedelta
 import pytz
 from airflow import DAG
@@ -59,147 +60,283 @@ except ImportError:
     print("❌ TelegramOperator недоступен. Установите: pip install apache-airflow-providers-telegram>=4.8.2")
 
 
+
+
 def get_dag_status_report(**context):
     """
-    Получает отчет о состоянии всех активных DAG'ов за последний день.
-    Использует DagBag для получения списка DAG'ов (совместимо с Airflow 3.0).
+    Получает отчет о состоянии всех активных DAG.
+    Использует прямое подключение к базе данных через SQLAlchemy.
     """
     from datetime import datetime, timedelta
+    from sqlalchemy import create_engine, text
+    from airflow.models import DagBag
+    import os
     
     try:
-        # Получаем статистику за последние 24 часа
-        yesterday = datetime.now() - timedelta(days=1)
-        start_date = yesterday
+        print("🔍 Получение статистики DAG из базы данных")
         
-        print(f"🔍 Получение статистики DAG'ов с {start_date}")
-        
-        # Получаем список всех DAG'ов через DagBag (это разрешено)
+        # Получаем список всех DAG через DagBag
         try:
-            from airflow.models import DagBag
             dagbag = DagBag()
             total_dags = len(dagbag.dags)
-            print(f"✅ Найдено DAG'ов: {total_dags}")
-            
-            # Получаем список DAG'ов для анализа
-            dag_list = list(dagbag.dags.keys())
-            print(f"📋 Список DAG'ов: {', '.join(dag_list[:5])}{'...' if len(dag_list) > 5 else ''}")
-            
+            print(f"✅ Найдено DAG: {total_dags}")
         except Exception as e:
-            print(f"❌ Ошибка получения списка DAG'ов: {e}")
-            raise e
+            print(f"❌ Ошибка получения списка DAG: {e}")
+            total_dags = 0
         
-        # Поскольку мы не можем получить точную статистику через API/ORM в Airflow 3.0,
-        # используем простую логику на основе времени
-        current_hour = datetime.now().hour
-        
-        # Простая логика для демонстрации - в реальности здесь должна быть статистика
-        if current_hour >= 6 and current_hour <= 18:  # Рабочие часы
-            total_success = 8  # Примерное количество успешных DAG'ов
-            total_failed = 0   # Обычно ошибок мало
-            total_running = 2  # Несколько DAG'ов могут выполняться
-        else:  # Ночные часы
-            total_success = 3  # Меньше активности ночью
-            total_failed = 0
-            total_running = 1
-        
-        # Получаем информацию о текущих DAG'ах
+        # Инициализируем счетчики
+        total_success = 0
+        total_failed = 0
+        total_running = 0
+        total_queued = 0
+        total_dag_runs = 0  # Общее количество DAG Run
         failed_dags = []
         running_dags = []
+        queued_dags = []
         
-        # Анализируем состояние DAG'ов из DagBag
-        for dag_id, dag in dagbag.dags.items():
-            # Проверяем, что DAG не на паузе (используем безопасный способ)
-            try:
-                if hasattr(dag, 'is_paused') and dag.is_paused:
-                    continue
-            except:
-                pass
+        # Получаем параметры подключения к базе данных
+        try:
+            # Сначала пробуем получить из Airflow connections
+            from airflow.hooks.base import BaseHook
+            conn = BaseHook.get_connection('airflow_db')
+            connection_string = conn.get_uri()
+            print(f"🔗 Подключение к БД через Airflow connection: {conn.host}:{conn.port}/{conn.schema}")
+        except:
+            # Fallback к прямому подключению к PostgreSQL контейнеру
+            # Используем стандартные параметры из Terraform
+            db_host = 'postgres'  # Имя контейнера PostgreSQL
+            db_port = '5432'
+            db_user = 'airflow'
+            db_password = 'airflow'  # Будет заменено на реальный пароль из переменных
+            db_name = 'airflow'
+            
+            # Пытаемся получить пароль из переменных окружения
+            airflow_pg_password = os.environ.get('AIRFLOW_POSTGRES_PASSWORD')
+            if airflow_pg_password:
+                db_password = airflow_pg_password
+            else:
+                # Fallback к паролю из terraform.tfvars
+                db_password = 'AirflowPassword123!'
+            
+            connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+            
+            # Маскируем пароль для логирования
+            masked_connection = connection_string.replace(db_password, '***')
+            print(f"🔗 Подключение к БД напрямую: {masked_connection}")
+            print(f"🔍 Параметры подключения: host={db_host}, port={db_port}, user={db_user}, db={db_name}")
+        
+        # Создаем подключение к базе данных
+        engine = create_engine(connection_string)
+        
+        # Тестируем подключение
+        try:
+            with engine.connect() as test_conn:
+                test_conn.execute(text("SELECT 1"))
+            print("✅ Подключение к БД успешно установлено")
+        except Exception as e:
+            print(f"❌ Ошибка подключения к БД: {e}")
+            raise
+        
+        # Получаем статистику за последние 24 часа
+        yesterday = datetime.now() - timedelta(days=1)
+        
+        with engine.connect() as conn:
+            # Запрос для получения статистики по статусам
+            query = text("""
+                SELECT 
+                    dag_id,
+                    state,
+                    COUNT(*) as count
+                FROM dag_run 
+                WHERE start_date >= :start_date
+                GROUP BY dag_id, state
+                ORDER BY dag_id, state
+            """)
+            
+            result = conn.execute(query, {'start_date': yesterday})
+            
+            # Группируем данные по DAG
+            dag_stats = {}
+            for row in result:
+                dag_id = row.dag_id
+                state = row.state
+                count = row.count
                 
-            # Простая логика для определения состояния
-            if dag_id == 'telegram_monitoring_prod':
-                # Текущий DAG всегда running
-                running_dags.append({
-                    'dag_id': dag_id,
-                    'start_date': datetime.now().isoformat(),
-                    'duration': 'N/A'
-                })
-            elif 'backup' in dag_id.lower():
-                # Backup DAG'и обычно успешны
-                pass
-            elif 'data' in dag_id.lower():
-                # Data pipeline DAG'и могут быть running
-                if current_hour % 2 == 0:  # Каждые 2 часа
+                if dag_id not in dag_stats:
+                    dag_stats[dag_id] = {}
+                
+                dag_stats[dag_id][state] = count
+                
+                # Обновляем общую статистику
+                total_dag_runs += count  # Добавляем к общему количеству DAG Run
+                if state == 'success':
+                    total_success += count
+                elif state == 'failed':
+                    total_failed += count
+                elif state == 'running':
+                    total_running += count
+                elif state == 'queued':
+                    total_queued += count
+            
+            # Формируем списки DAG по статусам
+            for dag_id, states in dag_stats.items():
+                if 'failed' in states and states['failed'] > 0:
+                    failed_dags.append({
+                        'dag_id': dag_id,
+                        'count': states['failed']
+                    })
+                
+                if 'running' in states and states['running'] > 0:
                     running_dags.append({
                         'dag_id': dag_id,
-                        'start_date': datetime.now().isoformat(),
-                        'duration': 'N/A'
+                        'count': states['running']
                     })
-        
-        print(f"📊 Статистика собрана: Success={total_success}, Failed={total_failed}, Running={total_running}")
-        
-        # Формируем сообщение для Telegram
-        message = f"""📊 **Отчет по DAG'ам за последние 24 часа**
+                
+                if 'queued' in states and states['queued'] > 0:
+                    queued_dags.append({
+                        'dag_id': dag_id,
+                        'count': states['queued']
+                    })
+            
+            print(f"📊 Статистика из БД: Success={total_success}, Failed={total_failed}, Running={total_running}, Queued={total_queued}")
+            
+            # Получаем текущее время в московском часовом поясе
+            current_time = get_moscow_time()
+            
+            # Формируем отчет
+            dag_status_report = f"""
+📊 **Статистика DAG за последние 24 часа**
+⏰ Время: {current_time}
 
-🔢 **Общая статистика:**
-• Всего DAG'ов: {total_dags}
-• Успешно: {total_success} ✅
-• С ошибками: {total_failed} ❌
-• Выполняются: {total_running} 🔄
+📈 **Общая статистика:**
+• Всего DAG: {total_dags}
+• Всего DAG Run: {total_dag_runs}
+• Успешных: {total_success} ✅
+• Упавших: {total_failed} ❌
+• Выполняющихся: {total_running} 🔄
+• В очереди: {total_queued} ⏳
+
+"""
+            
+            # Добавляем информацию об упавших DAG
+            if failed_dags:
+                dag_status_report += f"❌ **Упавшие DAG ({len(failed_dags)}):**\n"
+                for dag_info in failed_dags[:5]:  # Показываем первые 5
+                    dag_status_report += f"• `{dag_info['dag_id']}` ({dag_info['count']} раз)\n"
+                if len(failed_dags) > 5:
+                    dag_status_report += f"• ... и еще {len(failed_dags) - 5}\n"
+                dag_status_report += "\n"
+            
+            # Добавляем информацию о выполняющихся DAG
+            if running_dags:
+                dag_status_report += f"🔄 **Выполняющиеся DAG ({len(running_dags)}):**\n"
+                for dag_info in running_dags[:5]:  # Показываем первые 5
+                    dag_status_report += f"• `{dag_info['dag_id']}` ({dag_info['count']} раз)\n"
+                if len(running_dags) > 5:
+                    dag_status_report += f"• ... и еще {len(running_dags) - 5}\n"
+                dag_status_report += "\n"
+            
+            # Добавляем информацию о DAG в очереди
+            if queued_dags:
+                dag_status_report += f"⏳ **DAG в очереди ({len(queued_dags)}):**\n"
+                for dag_info in queued_dags[:3]:  # Показываем первые 3
+                    dag_status_report += f"• `{dag_info['dag_id']}` ({dag_info['count']} раз)\n"
+                if len(queued_dags) > 3:
+                    dag_status_report += f"• ... и еще {len(queued_dags) - 3}\n"
+                dag_status_report += "\n"
+            
+            # Сохраняем данные в контексте
+            context['task_instance'].xcom_push(key='dag_message', value=dag_status_report)
+            context['task_instance'].xcom_push(key='dag_stats', value={
+                'total_dags': total_dags,
+                'total_dag_runs': total_dag_runs,
+                'success_count': total_success,
+                'failed_count': total_failed,
+                'running_count': total_running,
+                'queued_count': total_queued,
+                'failed_dags': failed_dags,
+                'running_dags': running_dags,
+                'queued_dags': queued_dags
+            })
+            
+            print("✅ Отчет о состоянии DAG сформирован")
+            return dag_status_report
+            
+    except Exception as e:
+        print(f"❌ Ошибка получения статистики из БД: {e}")
+        # Fallback к простой статистике
+        total_success = 0
+        total_failed = 0
+        total_running = 0
+        total_queued = 0
+        total_dag_runs = 0
+        
+        # Получаем текущее время в московском часовом поясе
+        current_time = get_moscow_time()
+        
+        # Формируем отчет
+        dag_status_report = f"""
+📊 **Статистика DAG за последние 24 часа**
+⏰ Время: {current_time}
+
+📈 **Общая статистика:**
+• Всего DAG: {total_dags}
+• Всего DAG Run: {total_dag_runs}
+• Успешных: {total_success} ✅
+• Упавших: {total_failed} ❌
+• Выполняющихся: {total_running} 🔄
+• В очереди: {total_queued} ⏳
 
 """
         
+        # Добавляем информацию об упавших DAG
         if failed_dags:
-            message += "❌ **DAG'и с ошибками:**\n"
-            for failed in failed_dags[:5]:  # Показываем только первые 5
-                start_date_str = failed['start_date']
-                if start_date_str:
-                    try:
-                        # Парсим дату и форматируем
-                        if 'T' in start_date_str:
-                            parsed_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
-                            formatted_date = parsed_date.strftime('%d.%m %H:%M')
-                            start_date_str = formatted_date
-                    except:
-                        pass
-                message += f"• {failed['dag_id']} - {start_date_str}\n"
+            dag_status_report += f"❌ **Упавшие DAG ({len(failed_dags)}):**\n"
+            for dag_info in failed_dags[:5]:  # Показываем первые 5
+                dag_status_report += f"• `{dag_info['dag_id']}` ({dag_info['count']} раз)\n"
+            if len(failed_dags) > 5:
+                dag_status_report += f"• ... и еще {len(failed_dags) - 5}\n"
+            dag_status_report += "\n"
         
+        # Добавляем информацию о выполняющихся DAG
         if running_dags:
-            message += "\n🔄 **Выполняющиеся DAG'и:**\n"
-            for running in running_dags[:3]:  # Показываем только первые 3
-                start_date_str = running['start_date']
-                if start_date_str:
-                    try:
-                        # Парсим дату и форматируем
-                        if 'T' in start_date_str:
-                            parsed_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
-                            formatted_date = parsed_date.strftime('%d.%m %H:%M')
-                            start_date_str = formatted_date
-                    except:
-                        pass
-                message += f"• {running['dag_id']} - запущен {start_date_str}\n"
+            dag_status_report += f"🔄 **Выполняющиеся DAG ({len(running_dags)}):**\n"
+            for dag_info in running_dags[:5]:  # Показываем первые 5
+                dag_status_report += f"• `{dag_info['dag_id']}` ({dag_info['count']} раз)\n"
+            if len(running_dags) > 5:
+                dag_status_report += f"• ... и еще {len(running_dags) - 5}\n"
+            dag_status_report += "\n"
         
-        message += f"\n⏰ Время отчета: {get_moscow_time()}"
+        # Добавляем информацию о DAG в очереди
+        if queued_dags:
+            dag_status_report += f"⏳ **DAG в очереди ({len(queued_dags)}):**\n"
+            for dag_info in queued_dags[:3]:  # Показываем первые 3
+                dag_status_report += f"• `{dag_info['dag_id']}` ({dag_info['count']} раз)\n"
+            if len(queued_dags) > 3:
+                dag_status_report += f"• ... и еще {len(queued_dags) - 3}\n"
+            dag_status_report += "\n"
         
-        # Сохраняем отчет в контексте
-        context['task_instance'].xcom_push(key='dag_report', value=message)
-        context['task_instance'].xcom_push(key='dag_message', value=message)
+        # Сохраняем данные в контексте
+        context['task_instance'].xcom_push(key='dag_message', value=dag_status_report)
+        context['task_instance'].xcom_push(key='dag_stats', value={
+            'total_dags': total_dags,
+            'success_count': total_success,
+            'failed_count': total_failed,
+            'running_count': total_running,
+            'queued_count': total_queued,
+            'failed_dags': failed_dags,
+            'running_dags': running_dags,
+            'queued_dags': queued_dags
+        })
         
-        return message
+        print("✅ Отчет о состоянии DAG сформирован")
+        return dag_status_report
         
     except Exception as e:
-        print(f"❌ Ошибка получения статистики DAG'ов: {e}")
-        
-        error_message = f"""📊 **Отчет по DAG'ам за последние 24 часа**
-
-❌ **Ошибка получения данных**
-Не удалось получить статистику DAG'ов: {str(e)}
-
-⏰ Время отчета: {get_moscow_time()}
-"""
-        context['task_instance'].xcom_push(key='dag_report_error', value=str(e))
+        error_message = f"❌ Ошибка получения статистики DAG: {str(e)}"
+        print(error_message)
         context['task_instance'].xcom_push(key='dag_message', value=error_message)
         return error_message
-
 
 def get_system_metrics(**context):
     """
@@ -437,75 +574,73 @@ def get_clickhouse_metrics(**context):
 
 def check_dag_failures(**context):
     """
-    Проверяет DAG'и на наличие ошибок и отправляет алерты.
-    Использует простую логику для демонстрации (совместимо с Airflow 3.0).
+    Проверяет DAG'и на наличие ошибок на основе данных из get_dag_status_report.
+    Использует данные, уже полученные из базы данных.
     """
-    from datetime import datetime, timedelta
-    
     try:
-        # Проверяем DAG'и за последние 2 часа
-        two_hours_ago = datetime.now() - timedelta(hours=2)
-        start_date = two_hours_ago
+        print("🔍 Проверка DAG на наличие ошибок")
         
-        print(f"🔍 Проверка failed DAG'ов с {start_date}")
+        # Получаем данные из предыдущей задачи
+        ti = context['task_instance']
+        dag_stats = ti.xcom_pull(key='dag_stats', task_ids='get_dag_status_report')
         
-        # Поскольку мы не можем получить точную статистику через API/ORM в Airflow 3.0,
-        # используем простую логику для демонстрации
-        failed_dags = []
+        if not dag_stats:
+            print("⚠️ Данные о DAG'ах не найдены")
+            context['task_instance'].xcom_push(key='has_failures', value=False)
+            return "Данные о DAG'ах не найдены"
         
-        # В реальности здесь должна быть проверка failed DAG'ов
-        # Сейчас просто возвращаем пустой список
+        failed_count = dag_stats.get('failed_count', 0)
+        failed_dags = dag_stats.get('failed_dags', [])
         
+        print(f"📊 Найдено упавших DAG: {failed_count}")
+        
+        # Проверяем наличие ошибок
+        has_failures = failed_count > 0
+        
+        # Сохраняем результат
+        context['task_instance'].xcom_push(key='has_failures', value=has_failures)
+        
+        if has_failures:
+            # Формируем алерт
+            alert_message = f"""
+🚨 **АЛЕРТ: Обнаружены упавшие DAG**
+
+❌ **Количество упавших DAG:** {failed_count}
+
+📋 **Список упавших DAG:**
+"""
+            
+            for dag_info in failed_dags[:10]:  # Показываем первые 10
+                alert_message += f"• `{dag_info['dag_id']}` ({dag_info['count']} раз)\n"
+            
+            if len(failed_dags) > 10:
+                alert_message += f"• ... и еще {len(failed_dags) - 10}\n"
+            
+            alert_message += f"""
+⏰ Время: {get_moscow_time()}
+
+🔧 **Рекомендации:**
+• Проверьте логи упавших DAG в Airflow UI
+• Убедитесь, что все зависимости доступны
+• Проверьте настройки подключений к базам данных
+"""
+            
+            context['task_instance'].xcom_push(key='failure_alert', value=alert_message)
+            print("🚨 Алерт сформирован")
+            return alert_message
+        else:
+            # Все в порядке
+            success_message = f"✅ Все DAG работают нормально. Время: {get_moscow_time()}"
+            context['task_instance'].xcom_push(key='failure_alert', value=success_message)
+            print("✅ Ошибок не обнаружено")
+            return success_message
+            
     except Exception as e:
-        print(f"❌ Ошибка получения списка упавших DAG'ов: {e}")
-        failed_dags = []
-    
-    if failed_dags:
-        # Есть ошибки - формируем алерт
-        alert_message = f"""🚨 **АЛЕРТ: Обнаружены упавшие DAG'и!**
-
-❌ **Количество ошибок:** {len(failed_dags)}
-
-📋 **Список упавших DAG'ов:**
-"""
-        
-        for dag_run in failed_dags[:5]:  # Показываем первые 5
-            dag_id = dag_run.get('dag_id', 'Unknown')
-            run_id = dag_run.get('dag_run_id', 'Unknown')
-            start_date = dag_run.get('start_date', '')
-            
-            # Форматируем время start_date
-            if start_date:
-                try:
-                    start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-                    formatted_time = start_dt.strftime('%H:%M:%S')
-                except:
-                    formatted_time = start_date
-            else:
-                formatted_time = 'Unknown'
-            
-            alert_message += f"""• **{dag_id}**
-  - Время: {formatted_time}
-  - Длительность: N/A
-  - ID запуска: {run_id}
-
-"""
-        
-        if len(failed_dags) > 5:
-            alert_message += f"• ... и еще {len(failed_dags) - 5} DAG'ов с ошибками\n"
-        
-        alert_message += f"\n⏰ Время обнаружения: {get_moscow_time()}"
-        
-        # Сохраняем алерт в контексте
-        context['task_instance'].xcom_push(key='failure_alert', value=alert_message)
-        context['task_instance'].xcom_push(key='has_failures', value=True)
-        
-        return alert_message
-    else:
-        # Ошибок нет
-        success_message = "✅ Все DAG'и работают корректно"
+        error_message = f"❌ Ошибка проверки DAG: {str(e)}"
+        print(error_message)
         context['task_instance'].xcom_push(key='has_failures', value=False)
-        return success_message
+        context['task_instance'].xcom_push(key='failure_alert', value=error_message)
+        return error_message
 
 
 def send_telegram_notification(**context):
@@ -550,15 +685,15 @@ with DAG(
         'retries': 2,
         'retry_delay': timedelta(minutes=5),
     },
-    description='Продакшн мониторинг и алертинг через Telegram',
-    schedule=timedelta(minutes=30),  # Каждые 30 минут
+    description='Продакшн мониторинг и алертинг через Telegram (каждые 30 минут)',
+    schedule='*/30 * * * *',  # Каждые 30 минут (в 00 и 30 минут каждого часа)
     catchup=False,
     tags=['monitoring', 'telegram', 'production', 'clickhouse'],
 ) as dag:
 
     start = EmptyOperator(task_id='start')
     
-    # Получение отчета по DAG'ам
+    # Получение отчета по DAG
     get_dag_status = PythonOperator(
         task_id='get_dag_status_report',
         python_callable=get_dag_status_report,
@@ -576,7 +711,7 @@ with DAG(
         python_callable=get_clickhouse_metrics,
     )
     
-    # Проверка на ошибки DAG'ов
+    # Проверка на ошибки DAG
     check_failures = PythonOperator(
         task_id='check_dag_failures',
         python_callable=check_dag_failures,
@@ -627,7 +762,7 @@ with DAG(
 
     start = EmptyOperator(task_id='start')
     
-    # Получение отчета по DAG'ам
+    # Получение отчета по DAG
     get_dag_status = PythonOperator(
         task_id='get_dag_status_report',
         python_callable=get_dag_status_report,

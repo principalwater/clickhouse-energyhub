@@ -123,7 +123,9 @@ locals {
     "_AIRFLOW_WWW_USER_PASSWORD=${var.airflow_admin_password}",
     # Telegram переменные для уведомлений
     "TELEGRAM_BOT_TOKEN=${var.telegram_bot_token}",
-    "TELEGRAM_CHAT_ID=${var.telegram_chat_id}"
+    "TELEGRAM_CHAT_ID=${var.telegram_chat_id}",
+    # PostgreSQL переменные для прямого подключения
+    "AIRFLOW_POSTGRES_PASSWORD=${var.airflow_postgres_password}"
   ] : []
 
   airflow_common_volumes = var.deploy_airflow ? [
